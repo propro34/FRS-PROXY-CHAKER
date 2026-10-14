@@ -163,6 +163,35 @@ async function checkBatch(proxies, targetUrl, timeoutMs, type) {
   return output;
 }
 
+
+app.post('/api/scrape', async (req, res) => {
+  const urls = Array.isArray(req.body?.urls) ? req.body.urls.slice(0, 20) : [];
+  if (!urls.length) return res.status(400).json({ error: 'أدخل رابطًا واحدًا على الأقل.' });
+  const all = new Set();
+  const errors = [];
+  for (const raw of urls) {
+    let u;
+    try { u = new URL(String(raw).trim()); } catch { errors.push(`${raw}: رابط غير صحيح`); continue; }
+    if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) { errors.push(`${raw}: استعمل رابط HTTP/HTTPS عام`); continue; }
+    if (!(await publicHost(u.hostname))) { errors.push(`${raw}: المضيف غير عام أو تعذر التحقق منه`); continue; }
+    try {
+      const response = await axios.get(u.href, {
+        timeout: 8000, maxRedirects: 3, responseType: 'text', maxContentLength: 2 * 1024 * 1024,
+        headers: { 'User-Agent': 'Mozilla/5.0 FRS-Proxy-Chaker/5.0', Accept: 'text/html,text/plain,*/*' },
+        validateStatus: s => s >= 200 && s < 400
+      });
+      const body = String(response.data || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, '\n').replace(/&nbsp;|&#160;/gi, ' ');
+      const matches = body.match(/(?:https?|socks4|socks5):\/\/[\w.\-\[\]:]+(?::\d{1,5})?|(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}/gi) || [];
+      for (const item of matches) {
+        const candidate = item.trim().replace(/[),.;]+$/, '');
+        const parsed = parseProxy(candidate, 'auto');
+        if (parsed) all.add(candidate.includes('://') ? candidate : `${parsed.host}:${parsed.port}`);
+      }
+    } catch (e) { errors.push(`${u.hostname}: ${String(e.code || e.message || 'تعذر الجلب').slice(0, 100)}`); }
+  }
+  return res.json({ proxies: [...all], count: all.size, errors });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'FRS Proxy Chaker', mode: 'real HTTP request via proxy', concurrency: MAX_CONCURRENCY });
 });
