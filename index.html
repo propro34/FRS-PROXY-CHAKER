@@ -9,15 +9,52 @@
 <section class="stats"><div class="stat"><span>الإجمالي</span><b id="total">0</b></div><div class="stat"><span>تم فحصها</span><b id="checked">0</b></div><div class="stat"><span>قابلة للاتصال</span><b id="working" style="color:var(--green)">0</b></div><div class="stat"><span>فاشلة / غير صالحة</span><b id="failed" style="color:#ff7784">0</b></div></section>
 <section class="panel"><h3>01 / إعداد الفحص</h3><label for="target">رابط الموقع المستهدف</label><input id="target" value="https://www.google.com" type="url" dir="ltr"><div class="row"><div><label for="type">نوع البروكسي</label><select id="type"><option value="auto">اكتشاف من صيغة العنوان</option><option value="http">HTTP</option><option value="https">HTTPS</option><option value="socks4">SOCKS4</option><option value="socks5">SOCKS5</option></select></div><div><label for="timeout">مهلة الفحص (ثانية)</label><input id="timeout" type="number" min="1" max="15" value="6"></div></div>
 <label for="proxies">البروكسيات (واحد في كل سطر)</label><textarea id="proxies" placeholder="8.8.8.8:8080&#10;http://host:port"></textarea><div class="row"><button class="btn primary" id="start">▶ START</button><button class="btn danger" id="stop" disabled>■ STOP</button><button class="btn" id="export">↓ CSV</button></div>
-<div class="warning">ملاحظة تقنية بصراحة: الفحص يرسل طلب HTTP فعليًا إلى الموقع المستهدف عبر البروكسي. النتيجة WORKING تعني أن الطلب نجح، أما FAILED فقد تعني بروكسي ميتًا أو حظرًا من الموقع أو مهلة قصيرة. البروكسيات العامة قد تكون غير آمنة؛ لا تدخل بيانات تسجيل الدخول عبرها.</div></section>
+<div class="warning">ملاحظة تقنية بصراحة: الفحص يرسل طلب HTTP فعليًا إلى الموقع المستهدف عبر البروكسي، ويعالج حتى 10 بروكسيات بالتوازي. النتيجة WORKING تعني أن الطلب نجح، أما FAILED فقد تعني بروكسي ميتًا أو حظرًا من الموقع أو مهلة قصيرة. البروكسيات العامة قد تكون غير آمنة؛ لا تدخل بيانات تسجيل الدخول عبرها.</div></section>
 <section class="panel"><h3>02 / النتائج</h3><div class="tablewrap"><table><thead><tr><th>البروكسي</th><th>الحالة</th><th>الوقت</th><th>التفاصيل</th></tr></thead><tbody id="tbody"><tr><td colspan="4" style="text-align:center;color:#999">ألصق البروكسيات ثم ابدأ.</td></tr></tbody></table></div><p class="small">لا يتم إرسال قائمة البروكسيات إلى خدمة طرف ثالث في هذا المشروع؛ الفحص يتم على السيرفر الذي تنشره أنت.</p></section><div class="footer">FRS PROXY CHAKER · PRIVATE WEB EDITION</div></main>
 <script>
-const $=id=>document.getElementById(id);let busy=false,stopFlag=false,rows=[];
+const $=id=>document.getElementById(id);
+let busy=false,stopFlag=false,rows=[];
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function render(){const done=rows.length,ok=rows.filter(r=>r.status==='working').length,bad=rows.filter(r=>r.status!=='working').length;$('total').textContent=rows.length;$('checked').textContent=done;$('working').textContent=ok;$('failed').textContent=bad;$('progressText').textContent=`${done} / ${window.totalToCheck||0}`;$('bar').style.width=(window.totalToCheck?done/window.totalToCheck*100:0)+'%';$('tbody').innerHTML=rows.length?rows.map(r=>`<tr><td dir="ltr">${esc(r.proxy)}</td><td><span class="tag ${r.status==='working'?'good':'bad'}">${r.status==='working'?'WORKING':r.status==='invalid'?'INVALID':r.status==='blocked'?'BLOCKED':'FAILED'}</span></td><td>${r.latency_ms==null?'—':r.latency_ms+' ms'}</td><td>${esc(r.detail)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#999">ألصق البروكسيات ثم ابدأ.</td></tr>';}
-$('start').onclick=async()=>{if(busy)return;const proxies=[...new Set($('proxies').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];if(!proxies.length){$('status').textContent='ألصق بروكسي واحدًا على الأقل.';return;}let target;try{target=new URL($('target').value);if(!['http:','https:'].includes(target.protocol))throw 0;}catch{$('status').textContent='رابط الموقع غير صحيح.';return;}busy=true;stopFlag=false;rows=[];window.totalToCheck=proxies.length;$('start').disabled=true;$('stop').disabled=false;$('engine').textContent='يفحص…';render();const timeout=Math.max(1,Math.min(15,Number($('timeout').value)||6));const type=$('type').value;
-try{for(let i=0;i<proxies.length;i+=20){if(stopFlag)break;const batch=proxies.slice(i,i+20);$('status').textContent=`جاري فحص الدفعة ${Math.floor(i/20)+1}…`;const resp=await fetch('/api/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proxies:batch,target:$('target').value,timeout,type})});const data=await resp.json();if(!resp.ok)throw new Error(data.error||'API error');rows.push(...data.results);render();}}catch(e){$('status').textContent='خطأ: '+(e.message||e)+' · تأكد أن السيرفر منشور ويعمل، وأن الصفحة مفتوحة من رابط الاستضافة.';}finally{busy=false;$('start').disabled=false;$('stop').disabled=true;$('engine').textContent=stopFlag?'توقف':'انتهى';render();}};
+function render(){
+  const done=rows.length, ok=rows.filter(r=>r.status==='working').length, bad=rows.filter(r=>r.status!=='working').length;
+  $('total').textContent=window.totalToCheck||0;
+  $('checked').textContent=done;
+  $('working').textContent=ok;
+  $('failed').textContent=bad;
+  $('progressText').textContent=`${done} / ${window.totalToCheck||0}`;
+  $('bar').style.width=(window.totalToCheck?Math.min(100,done/window.totalToCheck*100):0)+'%';
+  $('tbody').innerHTML=rows.length?rows.map(r=>`<tr><td dir="ltr">${esc(r.proxy)}</td><td><span class="tag ${r.status==='working'?'good':r.status==='failed'?'bad':'warn'}">${r.status==='working'?'WORKING':r.status==='invalid'?'INVALID':r.status==='blocked'?'BLOCKED':'FAILED'}</span></td><td>${r.latency_ms==null?'—':r.latency_ms+' ms'}</td><td>${esc(r.detail)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#999">ألصق البروكسيات ثم ابدأ.</td></tr>';
+}
+$('start').onclick=async()=>{
+  if(busy)return;
+  const proxies=[...new Set($('proxies').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];
+  if(!proxies.length){$('status').textContent='ألصق بروكسي واحدًا على الأقل.';return;}
+  let target;
+  try{target=new URL($('target').value);if(!['http:','https:'].includes(target.protocol))throw new Error();}
+  catch{$('status').textContent='رابط الموقع غير صحيح.';return;}
+  busy=true;stopFlag=false;rows=[];window.totalToCheck=proxies.length;
+  $('start').disabled=true;$('stop').disabled=false;$('engine').textContent='يفحص…';$('status').textContent='بدأ الفحص؛ النتائج ستظهر مع كل دفعة.';render();
+  const timeout=Math.max(1,Math.min(15,Number($('timeout').value)||6));
+  const type=$('type').value; const batchSize=10;
+  try{
+    for(let i=0;i<proxies.length;i+=batchSize){
+      if(stopFlag)break;
+      const batch=proxies.slice(i,i+batchSize);
+      $('status').textContent=`جاري فحص ${Math.min(i+batch.length,proxies.length)} من ${proxies.length}…`;
+      const resp=await fetch('/api/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proxies:batch,target:target.href,timeout,type})});
+      let data;
+      try{data=await resp.json();}catch{throw new Error(`السيرفر رجّع استجابة غير مفهومة (HTTP ${resp.status}).`);}
+      if(!resp.ok)throw new Error(data.error||`فشل طلب الفحص (HTTP ${resp.status}).`);
+      if(!Array.isArray(data.results))throw new Error('السيرفر لم يرجع قائمة نتائج.');
+      rows.push(...data.results);render();
+      $('status').textContent=`تم فحص ${rows.length} من ${proxies.length}. صالح: ${rows.filter(r=>r.status==='working').length}.`;
+    }
+    if(stopFlag)$('status').textContent=`توقف الفحص عند ${rows.length} من ${proxies.length}.`;
+    else $('status').textContent=`اكتمل الفحص: ${rows.length} من ${proxies.length}. صالح: ${rows.filter(r=>r.status==='working').length}؛ فاشل/مرفوض: ${rows.filter(r=>r.status!=='working').length}.`;
+  }catch(e){$('status').textContent='خطأ: '+(e.message||e)+' افتح Render Logs لمعرفة سبب الطلب.';}
+  finally{busy=false;$('start').disabled=false;$('stop').disabled=true;$('engine').textContent=stopFlag?'توقف':'انتهى';render();}
+};
 $('stop').onclick=()=>{stopFlag=true;$('status').textContent='سيتم الإيقاف بعد الدفعة الحالية.';$('stop').disabled=true;};
 $('export').onclick=()=>{if(!rows.length){$('status').textContent='لا توجد نتائج للتصدير.';return;}const csv='\ufeff'+[['proxy','status','latency_ms','detail'],...rows.map(r=>[r.proxy,r.status,r.latency_ms??'',r.detail])].map(a=>a.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=u;a.download='frs-proxy-results.csv';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
-fetch('/api/health').then(r=>r.json()).then(d=>{$('status').textContent=d.ok?'المحرّك متصل. الاختبار يرسل طلبًا فعليًا عبر البروكسي.':'المحرّك غير متصل.'}).catch(()=>{$('status').textContent='الواجهة مفتوحة بدون السيرفر. انشر المشروع على استضافة Node.js أولًا.'});
+fetch('/api/health').then(async r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(d=>{$('status').textContent=d.ok?'المحرّك متصل. الفحص يرسل طلبًا فعليًا عبر البروكسي.':'المحرّك غير متصل.';}).catch(()=>{$('status').textContent='تعذر الاتصال بالسيرفر. افتح رابط Render المنشور وتأكد من حالة الخدمة.';});
 </script></body></html>
