@@ -1,8 +1,8 @@
 {
   "name": "frs-proxy-chaker",
-  "version": "4.0.0",
+  "version": "6.0.0",
   "private": true,
-  "description": "FRS Proxy Chaker concurrent real HTTP proxy checker",
+  "description": "FRS Proxy Chaker proxy checker with TXT/API and HTML proxy scraping",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,6 +16,7 @@
     "express": "^4.21.2",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6",
-    "socks-proxy-agent": "^8.0.5"
+    "socks-proxy-agent": "^8.0.5",
+    "cheerio": "^1.0.0"
   }
 }
