@@ -6,6 +6,7 @@ const net = require('node:net');
 const path = require('node:path');
 const { URL } = require('node:url');
 const axios = require('axios');
+const cheerio = require('cheerio');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -164,32 +165,90 @@ async function checkBatch(proxies, targetUrl, timeoutMs, type) {
 }
 
 
+async function fetchPublicPage(startUrl) {
+  let current = new URL(startUrl.href);
+  for (let hop = 0; hop <= 4; hop++) {
+    if (!['http:', 'https:'].includes(current.protocol) || current.username || current.password) {
+      throw new Error('رابط تحويل غير مسموح');
+    }
+    if (!(await publicHost(current.hostname))) {
+      throw new Error('المضيف غير عام أو تعذر التحقق منه');
+    }
+    const response = await axios.get(current.href, {
+      timeout: 12000,
+      maxRedirects: 0,
+      responseType: 'text',
+      maxContentLength: 4 * 1024 * 1024,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; FRS-Proxy-Chaker/6.0)',
+        Accept: 'text/html, text/plain, application/json, */*;q=0.8',
+      },
+      validateStatus: () => true,
+    });
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.location;
+      if (!location || hop === 4) throw new Error('تحويلات كثيرة أو وجهة تحويل مفقودة');
+      current = new URL(location, current);
+      continue;
+    }
+    if (response.status < 200 || response.status >= 400) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return { body: String(response.data || ''), contentType: String(response.headers['content-type'] || '') };
+  }
+  throw new Error('تعذر جلب الصفحة');
+}
+
+function extractProxiesFromPage(body, contentType = '') {
+  const raw = String(body || '');
+  let searchable = raw;
+  if (/html|xml/i.test(contentType) || /<\/?(?:html|body|table|tr|td|pre|div|span|script)\b/i.test(raw)) {
+    const $ = cheerio.load(raw);
+    const scriptText = $('script').map((_, el) => $(el).html() || '').get().join('\n');
+    $('script, style, noscript, svg').remove();
+    searchable = `${$('body').text()}\n${$('pre, code, td, th, a').map((_, el) => $(el).text()).get().join('\n')}\n${scriptText}\n${raw}`;
+  }
+  searchable = searchable
+    .replace(/\\u003a|\\x3a/gi, ':')
+    .replace(/\\u002f|\\x2f/gi, '/')
+    .replace(/&colon;|&#0*58;|&#x0*3a;/gi, ':')
+    .replace(/&nbsp;|&#0*160;/gi, ' ');
+
+  // Accept scheme://host:port, IPv4:port, domain:port, and bracketed IPv6:port.
+  const pattern = /(?:https?|socks4|socks5):\/\/(?:[^\s"'<>()[\]{}]+)|(?:\[[0-9a-f:.]+\]|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}):\d{1,5}/gi;
+  const found = searchable.match(pattern) || [];
+  const unique = new Map();
+  for (let item of found) {
+    item = item.trim().replace(/[),.;]+$/g, '');
+    const parsed = parseProxy(item, 'auto');
+    if (!parsed) continue;
+    const canonical = item.includes('://') ? `${parsed.protocol}://${parsed.host.includes(':') ? `[${parsed.host}]` : parsed.host}:${parsed.port}` : `${parsed.host.includes(':') ? `[${parsed.host}]` : parsed.host}:${parsed.port}`;
+    unique.set(canonical.toLowerCase(), canonical);
+  }
+  return [...unique.values()];
+}
+
 app.post('/api/scrape', async (req, res) => {
   const urls = Array.isArray(req.body?.urls) ? req.body.urls.slice(0, 20) : [];
   if (!urls.length) return res.status(400).json({ error: 'أدخل رابطًا واحدًا على الأقل.' });
-  const all = new Set();
+  const all = new Map();
   const errors = [];
   for (const raw of urls) {
     let u;
     try { u = new URL(String(raw).trim()); } catch { errors.push(`${raw}: رابط غير صحيح`); continue; }
-    if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) { errors.push(`${raw}: استعمل رابط HTTP/HTTPS عام`); continue; }
-    if (!(await publicHost(u.hostname))) { errors.push(`${raw}: المضيف غير عام أو تعذر التحقق منه`); continue; }
+    if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) {
+      errors.push(`${raw}: استعمل رابط HTTP/HTTPS عام`); continue;
+    }
     try {
-      const response = await axios.get(u.href, {
-        timeout: 8000, maxRedirects: 3, responseType: 'text', maxContentLength: 2 * 1024 * 1024,
-        headers: { 'User-Agent': 'Mozilla/5.0 FRS-Proxy-Chaker/5.0', Accept: 'text/html,text/plain,*/*' },
-        validateStatus: s => s >= 200 && s < 400
-      });
-      const body = String(response.data || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, '\n').replace(/&nbsp;|&#160;/gi, ' ');
-      const matches = body.match(/(?:https?|socks4|socks5):\/\/[\w.\-\[\]:]+(?::\d{1,5})?|(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}/gi) || [];
-      for (const item of matches) {
-        const candidate = item.trim().replace(/[),.;]+$/, '');
-        const parsed = parseProxy(candidate, 'auto');
-        if (parsed) all.add(candidate.includes('://') ? candidate : `${parsed.host}:${parsed.port}`);
-      }
-    } catch (e) { errors.push(`${u.hostname}: ${String(e.code || e.message || 'تعذر الجلب').slice(0, 100)}`); }
+      const page = await fetchPublicPage(u);
+      const proxies = extractProxiesFromPage(page.body, page.contentType);
+      for (const proxy of proxies) all.set(proxy.toLowerCase(), proxy);
+      if (!proxies.length) errors.push(`${u.hostname}: لم يتم العثور على عناوين بروكسي بصيغة معروفة`);
+    } catch (e) {
+      errors.push(`${u.hostname}: ${String(e.code || e.message || 'تعذر الجلب').slice(0, 100)}`);
+    }
   }
-  return res.json({ proxies: [...all], count: all.size, errors });
+  return res.json({ proxies: [...all.values()], count: all.size, errors });
 });
 
 app.get('/api/health', (_req, res) => {
