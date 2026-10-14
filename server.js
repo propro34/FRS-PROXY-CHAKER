@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const dns = require("dns").promises;
 const net = require("net");
 const { URL } = require("url");
@@ -7,6 +8,9 @@ const { ProxyAgent } = require("proxy-agent");
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 app.use(express.static("public"));
 const PORT = process.env.PORT || 3000;
 const MAX_BATCH = 100;
