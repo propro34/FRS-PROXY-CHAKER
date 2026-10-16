@@ -25,8 +25,6 @@ app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = Number(process.env.PORT) || 3000;
-const MAX_BATCH = 500;
-const ABSOLUTE_MAX_CONCURRENCY = 200;
 
 function parseProxy(input, selectedType) {
   let raw = String(input || '').trim();
@@ -107,7 +105,7 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
   const started = Date.now();
   try {
     if (!(await publicHost(proxy.host))) {
-      return result(proxyText, 'blocked', null, 'عنوان البروكسي خاص أو اسم المضيف غير قابل للحل');
+      return result(proxyText, 'blocked', null, 'عنوان البروكسي خاص أو غير قابل للحل');
     }
 
     let agent;
@@ -137,8 +135,8 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
       const latency = Date.now() - started;
       const ok = (response.status >= 200 && response.status < 400) || response.status === 403;
       const msg = ok 
-        ? (response.status === 403 ? 'البروكسي متصل (استجابة HTTP 403)' : `نجح الاتصال بالموقع (HTTP ${response.status})`)
-        : `رد الموقع بحالة HTTP ${response.status}`;
+        ? (response.status === 403 ? 'متصل (HTTP 403)' : `ناجح (HTTP ${response.status})`)
+        : `استجابة HTTP ${response.status}`;
       
       return result(
         proxyText,
@@ -155,29 +153,10 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
       proxyText,
       'failed',
       Date.now() - started,
-      String(error.code || error.message || 'Request failed').slice(0, 160),
+      String(error.code || error.message || 'Request failed').slice(0, 100),
       { protocol: proxy.protocol },
     );
   }
-}
-
-async function checkBatch(proxies, targetUrl, timeoutMs, type, concurrency) {
-  const output = new Array(proxies.length);
-  let nextIndex = 0;
-  async function worker() {
-    while (true) {
-      const index = nextIndex++;
-      if (index >= proxies.length) return;
-      try {
-        output[index] = await checkOne(proxies[index], targetUrl, timeoutMs, type);
-      } catch (error) {
-        output[index] = result(String(proxies[index]), 'failed', null, String(error.message || error).slice(0, 160));
-      }
-    }
-  }
-  const actualConcurrency = Math.min(concurrency || 50, ABSOLUTE_MAX_CONCURRENCY, proxies.length);
-  await Promise.all(Array.from({ length: actualConcurrency }, () => worker()));
-  return output;
 }
 
 app.post('/api/scrape', async (req, res) => {
@@ -189,7 +168,7 @@ app.post('/api/scrape', async (req, res) => {
     let u;
     try { u = new URL(String(raw).trim()); } catch { errors.push(`${raw}: رابط غير صحيح`); continue; }
     if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) { errors.push(`${raw}: استعمل رابط HTTP/HTTPS عام`); continue; }
-    if (!(await publicHost(u.hostname))) { errors.push(`${raw}: المضيف غير عام أو تعذر التحقق منه`); continue; }
+    if (!(await publicHost(u.hostname))) { errors.push(`${raw}: المضيف غير عام`); continue; }
     try {
       const response = await axios.get(u.href, {
         timeout: 10000, maxRedirects: 5, responseType: 'text', maxContentLength: 5 * 1024 * 1024,
@@ -199,7 +178,8 @@ app.post('/api/scrape', async (req, res) => {
         },
         validateStatus: s => s >= 200 && s < 400
       });
-      const body = String(response.data || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, '\n').replace(/&nbsp;|&#160;/gi, ' ');
+      const body = String(response.data || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, '
+').replace(/&nbsp;|&#160;/gi, ' ');
       const matches = body.match(/(?:https?|socks4|socks5):\/\/[\w.\-\[\]:]+(?::\d{1,5})?|(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}/gi) || [];
       for (const item of matches) {
         const candidate = item.trim().replace(/[),.;]+$/, '');
@@ -212,16 +192,13 @@ app.post('/api/scrape', async (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'FRS Proxy Chaker v5 Cyber', mode: 'real HTTP request via proxy' });
+  res.json({ ok: true, service: 'FRS Proxy Chaker v5 Cyber' });
 });
 
 app.post('/api/check', async (req, res) => {
-  const { proxies, target = 'https://www.google.com', timeout = 6, type = 'auto', threads = 50 } = req.body || {};
+  const { proxies, target = 'https://www.google.com', timeout = 6, type = 'auto', threads = 10 } = req.body || {};
   if (!Array.isArray(proxies) || proxies.length === 0) {
     return res.status(400).json({ error: 'أدخل بروكسي واحدًا على الأقل.' });
-  }
-  if (proxies.length > MAX_BATCH) {
-    return res.status(400).json({ error: `الحد الأقصى ${MAX_BATCH} بروكسي في الدفعة.` });
   }
 
   let targetUrl;
@@ -230,27 +207,27 @@ app.post('/api/check', async (req, res) => {
   } catch {
     return res.status(400).json({ error: 'رابط الموقع غير صحيح.' });
   }
-  if (!['http:', 'https:'].includes(targetUrl.protocol) || targetUrl.username || targetUrl.password) {
-    return res.status(400).json({ error: 'استعمل رابط HTTP/HTTPS صحيحًا لموقع عام.' });
-  }
-  if (!(await publicHost(targetUrl.hostname))) {
-    return res.status(400).json({ error: 'الموقع المستهدف غير عام أو تعذّر التأكد من عنوانه.' });
-  }
 
-  const concurrency = Math.max(5, Math.min(ABSOLUTE_MAX_CONCURRENCY, Number(threads) || 50));
   const timeoutMs = Math.max(1000, Math.min(20000, Number(timeout) * 1000 || 6000));
-  const started = Date.now();
-  console.log(`[check] start count=${proxies.length} target=${targetUrl.hostname} threads=${concurrency} timeout=${timeoutMs}ms`);
-  try {
-    const results = await checkBatch(proxies, targetUrl, timeoutMs, type, concurrency);
-    const working = results.filter((item) => item.status === 'working').length;
-    const failed = results.length - working;
-    console.log(`[check] done count=${results.length} working=${working} other=${failed} elapsed=${Date.now() - started}ms`);
-    return res.json({ target: targetUrl.href, mode: 'real HTTP request through proxy', checked: results.length, results });
-  } catch (error) {
-    console.error(`[check] failed: ${error.stack || error.message || error}`);
-    return res.status(500).json({ error: 'حدث خطأ أثناء فحص البروكسيات.' });
+  const concurrency = Math.max(1, Math.min(50, Number(threads) || 10));
+
+  const output = new Array(proxies.length);
+  let nextIndex = 0;
+  async function worker() {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= proxies.length) return;
+      try {
+        output[index] = await checkOne(proxies[index], targetUrl, timeoutMs, type);
+      } catch (error) {
+        output[index] = result(String(proxies[index]), 'failed', null, String(error.message || error).slice(0, 100));
+      }
+    }
   }
+  const actualConcurrency = Math.min(concurrency, proxies.length);
+  await Promise.all(Array.from({ length: actualConcurrency }, () => worker()));
+
+  return res.json({ target: targetUrl.href, results: output });
 });
 
 app.listen(PORT, '0.0.0.0', () => console.log(`FRS Proxy Chaker listening on ${PORT}`));
