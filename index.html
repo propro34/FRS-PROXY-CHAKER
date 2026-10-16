@@ -176,8 +176,8 @@ https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt</text
 
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-  const $ = function(id) { return document.getElementById(id); };
-  let busy = false, stopFlag = false, rows = [];
+  function $(id) { return document.getElementById(id); }
+  var busy = false, stopFlag = false, rows = [];
 
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function(c) {
@@ -186,9 +186,9 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 
   function updateStats() {
-    const done = rows.length;
-    const ok = rows.filter(function(r) { return r.status === 'working'; }).length;
-    const bad = rows.filter(function(r) { return r.status !== 'working'; }).length;
+    var done = rows.length;
+    var ok = rows.filter(function(r) { return r.status === 'working'; }).length;
+    var bad = rows.filter(function(r) { return r.status !== 'working'; }).length;
     $('total').textContent = window.totalToCheck || 0;
     $('checked').textContent = done;
     $('working').textContent = ok;
@@ -199,12 +199,12 @@ window.addEventListener('DOMContentLoaded', function() {
 
   function appendRow(r) {
     if (rows.length === 1) $('tbody').innerHTML = '';
-    const tr = document.createElement('tr');
+    var tr = document.createElement('tr');
     tr.innerHTML = '<td dir="ltr">' + esc(r.proxy) + '</td><td><span class="tag ' + (r.status === 'working' ? 'good' : r.status === 'invalid' ? 'bad' : 'warn') + '">' + (r.status === 'working' ? 'WORKING' : r.status === 'invalid' ? 'INVALID' : r.status === 'blocked' ? 'BLOCKED' : 'FAILED') + '</span></td><td>' + (r.latency_ms == null ? '—' : r.latency_ms + ' ms') + '</td><td>' + esc(r.detail) + '</td>';
     $('tbody').insertBefore(tr, $('tbody').firstChild);
   }
 
-  // TAB SWITCHING FIX
+  // TAB SWITCHING
   $('navCheck').onclick = function() {
     $('checkerPage').classList.remove('hidden');
     $('scraperPage').classList.add('hidden');
@@ -222,13 +222,13 @@ window.addEventListener('DOMContentLoaded', function() {
   // CHECKER START
   $('start').onclick = async function() {
     if (busy) return;
-    const lines = $('proxies').value.split(/?
-/);
-    const proxies = [...new Set(lines.map(function(s) { return s.trim(); }).filter(Boolean))];
+    var rawInput = $('proxies').value || '';
+    var lines = rawInput.split(/\r?\n/);
+    var proxies = Array.from(new Set(lines.map(function(s) { return s.trim(); }).filter(Boolean)));
     if (!proxies.length) { $('status').textContent = 'ألصق بروكسي واحدًا على الأقل.'; return; }
-    let target;
+    var target;
     try { target = new URL($('target').value); if (!['http:', 'https:'].includes(target.protocol)) throw new Error(); }
-    catch { $('status').textContent = 'رابط الموقع غير صحيح.'; return; }
+    catch (e) { $('status').textContent = 'رابط الموقع غير صحيح.'; return; }
     
     busy = true; stopFlag = false; rows = []; window.totalToCheck = proxies.length;
     $('start').disabled = true; $('stop').disabled = false; $('engine').textContent = 'يفحص…';
@@ -236,26 +236,26 @@ window.addEventListener('DOMContentLoaded', function() {
     $('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999">جاري الفحص المباشر...</td></tr>';
     updateStats();
 
-    const timeout = Math.max(1, Math.min(15, Number($('timeout').value) || 6));
-    const type = $('type').value;
-    const concurrency = Math.max(1, Math.min(20, Number($('concurrency').value) || 5));
+    var timeout = Math.max(1, Math.min(15, Number($('timeout').value) || 6));
+    var type = $('type').value;
+    var concurrency = Math.max(1, Math.min(20, Number($('concurrency').value) || 5));
     
-    let index = 0;
+    var index = 0;
 
     async function checkNext() {
       if (index >= proxies.length || stopFlag) return;
-      const proxyCandidate = proxies[index++];
+      var proxyCandidate = proxies[index++];
       
       try {
-        const resp = await fetch('/api/check', {
+        var resp = await fetch('/api/check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ proxies: [proxyCandidate], target: target.href, timeout: timeout, type: type, threads: 1 })
         });
-        const data = await resp.json();
+        var data = await resp.json();
         if (data && Array.isArray(data.results)) {
-          for (let i = 0; i < data.results.length; i++) {
-            const resItem = data.results[i];
+          for (var i = 0; i < data.results.length; i++) {
+            var resItem = data.results[i];
             rows.push(resItem);
             appendRow(resItem);
             updateStats();
@@ -267,7 +267,7 @@ window.addEventListener('DOMContentLoaded', function() {
       }
     }
 
-    const workers = Array.from({ length: concurrency }, async function() {
+    var workers = Array.from({ length: concurrency }, async function() {
       while (index < proxies.length && !stopFlag) {
         await checkNext();
       }
@@ -282,43 +282,41 @@ window.addEventListener('DOMContentLoaded', function() {
 
   $('stop').onclick = function() { stopFlag = true; $('status').textContent = 'سيتم الإيقاف فوراً...'; $('stop').disabled = true; };
 
-  let scraped = [];
+  var scraped = [];
   function downloadText(text, filename) {
-    const u = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-    const a = document.createElement('a'); a.href = u; a.download = filename; a.click();
+    var u = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    var a = document.createElement('a'); a.href = u; a.download = filename; a.click();
     setTimeout(function() { URL.revokeObjectURL(u); }, 1500);
   }
   function cleanName(s) { return String(s || 'proxies').replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 50) || 'proxies'; }
 
   $('saveTxt').onclick = function() {
-    const ok = rows.filter(function(r) { return r.status === 'working'; });
+    var ok = rows.filter(function(r) { return r.status === 'working'; });
     if (!ok.length) { $('status').textContent = 'ما كاين حتى بروكسي ناجح للحفظ.'; return; }
-    const type = $('type').value === 'auto' ? 'mixed' : $('type').value;
-    const name = prompt('اسم ملف TXT:', 'proxies_' + type);
+    var type = $('type').value === 'auto' ? 'mixed' : $('type').value;
+    var name = prompt('اسم ملف TXT:', 'proxies_' + type);
     if (name === null) return;
-    downloadText([...new Set(ok.map(function(r) { return r.proxy; }))].join('
-') + '
-', cleanName(name) + '.txt');
+    var setArr = Array.from(new Set(ok.map(function(r) { return r.proxy; })));
+    downloadText(setArr.join('\n') + '\n', cleanName(name) + '.txt');
     $('status').textContent = 'تم تجهيز ' + ok.length + ' بروكسي صالح للتنزيل في ملف TXT.';
   };
 
   $('runScrape').onclick = async function() {
-    const urls = [...new Set($('scrapeUrls').value.split(/?
-/).map(function(x) { return x.trim(); }).filter(Boolean))];
+    var rawUrls = $('scrapeUrls').value || '';
+    var urls = Array.from(new Set(rawUrls.split(/\r?\n/).map(function(x) { return x.trim(); }).filter(Boolean)));
     if (!urls.length) { $('scrapeStatus').textContent = 'أدخل رابطًا واحدًا على الأقل.'; return; }
-    const b = $('runScrape'); b.disabled = true;
+    var b = $('runScrape'); b.disabled = true;
     $('scrapeStatus').textContent = 'جاري جلب البروكسيات المحدثة يومياً...';
     try {
-      const resp = await fetch('/api/scrape', {
+      var resp = await fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ urls: urls })
       });
-      const data = await resp.json();
+      var data = await resp.json();
       if (!resp.ok) throw new Error(data.error || ('HTTP ' + resp.status));
       scraped = data.proxies || [];
-      $('scrapedProxies').value = scraped.join('
-');
+      $('scrapedProxies').value = scraped.join('\n');
       $('scrapeStatus').textContent = 'تم استخراج ' + scraped.length + ' بروكسي فريد من المصادر المحدثة.';
     } catch (e) {
       $('scrapeStatus').textContent = 'فشل الاستخراج: ' + (e.message || e);
@@ -329,28 +327,26 @@ window.addEventListener('DOMContentLoaded', function() {
 
   $('sendToChecker').onclick = function() {
     if (!scraped.length) { $('scrapeStatus').textContent = 'استخرج قائمة أولًا.'; return; }
-    const currentLines = $('proxies').value.split(/?
-/).map(function(x) { return x.trim(); }).filter(Boolean);
-    $('proxies').value = [...new Set([...currentLines, ...scraped])].join('
-');
+    var rawCurrent = $('proxies').value || '';
+    var currentLines = rawCurrent.split(/\r?\n/).map(function(x) { return x.trim(); }).filter(Boolean);
+    var combined = Array.from(new Set(currentLines.concat(scraped)));
+    $('proxies').value = combined.join('\n');
     $('navCheck').click();
     $('status').textContent = 'تم إرسال ' + scraped.length + ' بروكسي إلى الفاحص.';
   };
 
   $('saveScraped').onclick = function() {
     if (!scraped.length) { $('scrapeStatus').textContent = 'لا توجد بروكسيات لحفظها.'; return; }
-    const name = prompt('اسم ملف TXT:', 'scraped_proxies');
-    if (name !== null) downloadText(scraped.join('
-') + '
-', cleanName(name) + '.txt');
+    var name = prompt('اسم ملف TXT:', 'scraped_proxies');
+    if (name !== null) downloadText(scraped.join('\n') + '\n', cleanName(name) + '.txt');
   };
 
   $('export').onclick = function() {
     if (!rows.length) { $('status').textContent = 'لا توجد نتائج للتصدير.'; return; }
-    const csv = '﻿' + [['proxy', 'status', 'latency_ms', 'detail'], ...rows.map(function(r) { return [r.proxy, r.status, r.latency_ms ?? '', r.detail]; })].map(function(a) { return a.map(function(v) { return '"' + String(v ?? '').replace(/"/g, '""') + '"'; }).join(','); }).join('
-');
-    const u = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    const a = document.createElement('a'); a.href = u; a.download = 'frs-proxy-results.csv'; a.click();
+    var csvRows = [['proxy', 'status', 'latency_ms', 'detail']].concat(rows.map(function(r) { return [r.proxy, r.status, r.latency_ms != null ? r.latency_ms : '', r.detail]; }));
+    var csv = '\uFEFF' + csvRows.map(function(a) { return a.map(function(v) { return '"' + String(v != null ? v : '').replace(/"/g, '""') + '"'; }).join(','); }).join('\r\n');
+    var u = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    var a = document.createElement('a'); a.href = u; a.download = 'frs-proxy-results.csv'; a.click();
     setTimeout(function() { URL.revokeObjectURL(u); }, 1000);
   };
 
