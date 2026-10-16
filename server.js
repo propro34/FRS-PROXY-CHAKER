@@ -1,7 +1,6 @@
 'use strict';
 
-// Set threadpool size for heavy async DNS/network operations before any require
-process.env.UV_THREADPOOL_SIZE = '128';
+process.env.UV_THREADPOOL_SIZE = '64';
 
 const express = require('express');
 const dns = require('node:dns').promises;
@@ -15,12 +14,23 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 
 const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = Number(process.env.PORT) || 3000;
+
+// Default Auto Scrape Sources
+const DEFAULT_SCRAPE_SOURCES = [
+  'https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt',
+  'https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt',
+  'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt',
+  'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.txt',
+  'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt',
+  'https://raw.githubusercontent.com/prxctr/proxy-list/main/all.txt',
+  'https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies.txt'
+];
 
 function parseProxy(input, selectedType) {
   let raw = String(input || '').trim();
@@ -63,11 +73,10 @@ async function publicHost(host) {
   if (!normalized || normalized === 'localhost' || normalized.endsWith('.local')) return false;
   if (net.isIP(normalized)) return !privateIp(normalized);
   
-  // Non-blocking DNS resolve
   try {
     const ips = await Promise.race([
       dns.resolve4(normalized).catch(() => []),
-      new Promise((r) => setTimeout(() => r([]), 1500))
+      new Promise((r) => setTimeout(() => r([]), 1000))
     ]);
     if (ips && ips.length > 0) {
       return ips.every((ip) => !privateIp(ip));
@@ -75,7 +84,7 @@ async function publicHost(host) {
   } catch {
     return false;
   }
-  return true; // fallback allow if DNS resolve fails
+  return true;
 }
 
 function makeAgent(proxyUrl, proxyProtocol, targetProtocol, timeoutMs) {
@@ -101,7 +110,7 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
   const started = Date.now();
   try {
     if (!(await publicHost(proxy.host))) {
-      return result(proxyText, 'blocked', null, 'بروكسي محلي/خاص');
+      return result(proxyText, 'blocked', null, 'بروكسي خاص');
     }
 
     let agent;
@@ -151,15 +160,16 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
 }
 
 app.post('/api/scrape', async (req, res) => {
-  const urls = Array.isArray(req.body?.urls) ? req.body.urls.slice(0, 30) : [];
-  if (!urls.length) return res.status(400).json({ error: 'أدخل رابطًا واحدًا على الأقل.' });
+  const inputUrls = Array.isArray(req.body?.urls) && req.body.urls.length > 0 ? req.body.urls : DEFAULT_SCRAPE_SOURCES;
+  const urls = inputUrls.slice(0, 30);
   const all = new Set();
   const errors = [];
-  for (const raw of urls) {
+
+  await Promise.all(urls.map(async (raw) => {
     let u;
-    try { u = new URL(String(raw).trim()); } catch { errors.push(`${raw}: رابط غير صحيح`); continue; }
-    if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) { errors.push(`${raw}: استعمل رابط HTTP/HTTPS عام`); continue; }
-    if (!(await publicHost(u.hostname))) { errors.push(`${raw}: المضيف غير عام`); continue; }
+    try { u = new URL(String(raw).trim()); } catch { errors.push(`${raw}: رابط غير صحيح`); return; }
+    if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) { errors.push(`${raw}: رابط غير مسموح`); return; }
+    if (!(await publicHost(u.hostname))) { errors.push(`${raw}: مضيف غير عام`); return; }
     try {
       const response = await axios.get(u.href, {
         timeout: 6000, maxRedirects: 2, responseType: 'text', maxContentLength: 5 * 1024 * 1024,
@@ -177,16 +187,17 @@ app.post('/api/scrape', async (req, res) => {
         if (parsed) all.add(candidate.includes('://') ? candidate : `${parsed.host}:${parsed.port}`);
       }
     } catch (e) { errors.push(`${u.hostname}: ${String(e.code || e.message || 'تعذر الجلب').slice(0, 80)}`); }
-  }
+  }));
+
   return res.json({ proxies: [...all], count: all.size, errors });
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'FRS Proxy Chaker Fast Engine' });
+  res.json({ ok: true, service: 'FRS Proxy Chaker Master Edition' });
 });
 
 app.post('/api/check', async (req, res) => {
-  const { proxies, target = 'https://www.google.com', timeout = 3, type = 'auto', threads = 15 } = req.body || {};
+  const { proxies, target = 'https://www.google.com', timeout = 2, type = 'auto', threads = 8 } = req.body || {};
   if (!Array.isArray(proxies) || proxies.length === 0) {
     return res.status(400).json({ error: 'أدخل بروكسي واحدًا على الأقل.' });
   }
@@ -198,8 +209,8 @@ app.post('/api/check', async (req, res) => {
     return res.status(400).json({ error: 'رابط الموقع غير صحيح.' });
   }
 
-  const timeoutMs = Math.max(500, Math.min(10000, Number(timeout) * 1000 || 2500));
-  const concurrency = Math.max(1, Math.min(40, Number(threads) || 15));
+  const timeoutMs = Math.max(500, Math.min(8000, Number(timeout) * 1000 || 2000));
+  const concurrency = Math.max(1, Math.min(20, Number(threads) || 8));
 
   const output = new Array(proxies.length);
   let nextIndex = 0;

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#09090d">
-<title>FRS Proxy Chaker Turbo Max</title>
+<title>FRS Proxy Chaker v5 Master Edition</title>
 <style>
 :root{--red:#ff3048;--bg:#09090d;--panel:#141419;--line:#30303a;--txt:#f5f5f7;--muted:#a0a0ad;--green:#35d995;--yellow:#ffd16b}
 *{box-sizing:border-box}
@@ -58,12 +58,12 @@ tr:last-child td{border:0}
 <main class="wrap">
 <header class="head">
   <div class="logo">FRS</div>
-  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · TURBO MAX V5</p></div>
+  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · MASTER EDITION</p></div>
 </header>
 
 <nav class="nav">
   <button class="btn primary" id="navCheck" type="button">🛡 Proxy Checker</button>
-  <button class="btn" id="navScrape" type="button">🌐 Proxy Scraper</button>
+  <button class="btn" id="navScrape" type="button">🌐 Proxy Scraper (مواقع تجديد تلقائي)</button>
 </nav>
 
 <div id="checkerPage">
@@ -71,7 +71,7 @@ tr:last-child td{border:0}
     <div class="panel">
       <div class="small red">PROXY DIAGNOSTICS</div>
       <h2>Check proxies.<br><span class="red">Keep the working ones.</span></h2>
-      <p class="muted">فحص برمي الأداء خفيف وسريع وبدون أي تهنيج للمتصفح.</p>
+      <p class="muted">فحص متطور وسريع مع خيارات فحص تلقائية لـ Google و Bing و Yahoo.</p>
     </div>
     <div class="panel">
       <div class="statusline"><span>حالة المحرك</span><b id="engine">جاهز</b></div>
@@ -89,8 +89,8 @@ tr:last-child td{border:0}
   </section>
 
   <section class="panel">
-    <h3>01 / إعداد الفحص</h3>
-    <label for="targetSelect">اختر موقعاً مستهدفاً أو اكتب موقعك الخاص:</label>
+    <h3>01 / إعداد الفحص (اختر موقع الفحص)</h3>
+    <label for="targetSelect">اختر موقع الفحص التلقائي (Google / Bing / Yahoo):</label>
     <div class="row" style="margin-bottom:8px;">
       <select id="targetSelect" onchange="if(this.value)document.getElementById('target').value=this.value;">
         <option value="https://www.google.com">Google (https://www.google.com)</option>
@@ -101,7 +101,7 @@ tr:last-child td{border:0}
         <option value="https://httpbin.org/ip">HttpBin IP Check (https://httpbin.org/ip)</option>
       </select>
     </div>
-    <label for="target">رابط الموقع المستهدف للفحص</label>
+    <label for="target">رابط الموقع المستهدف المخصص</label>
     <input id="target" value="https://www.google.com" type="url" dir="ltr">
 
     <div class="row">
@@ -116,12 +116,12 @@ tr:last-child td{border:0}
         </select>
       </div>
       <div>
-        <label for="concurrency">السرعة بالتوازي (Threads)</label>
-        <input id="concurrency" type="number" min="1" max="40" value="15">
+        <label for="concurrency">السرعة بالتوازي (Threads: 5 إلى 15)</label>
+        <input id="concurrency" type="number" min="1" max="20" value="8">
       </div>
       <div>
         <label for="timeout">المهلة (ثواني)</label>
-        <input id="timeout" type="number" min="1" max="10" value="2.5" step="0.5">
+        <input id="timeout" type="number" min="1" max="10" value="2" step="0.5">
       </div>
     </div>
 
@@ -134,7 +134,7 @@ tr:last-child td{border:0}
       <button class="btn" id="export" type="button">↓ CSV</button>
       <button class="btn" id="saveTxt" type="button">↓ TXT صالح</button>
     </div>
-    <div class="warning">🚀 وضع خفة الأداء المفتوحة: خوارزمية O(1) فائقة السرعة تمنع تجمد المتصفح والسيرفر كلياً!</div>
+    <div class="warning">✨ تم إضافة روابط فحص Bing و Yahoo تلقائياً في القائمة المصغرة أعلاه، بالإضافة إلى مصادر بروكسي تجدد تلقائياً.</div>
   </section>
 
   <section class="panel">
@@ -153,25 +153,27 @@ tr:last-child td{border:0}
 </div>
 
 <div id="scraperPage" class="panel hidden">
-  <h2>🌐 PROXY SCRAPER (تحديث يومي)</h2>
-  <p class="muted">5 مصادر محدثة يومياً مكتوبة افتراضياً.</p>
-  <label for="scrapeUrls">روابط المصادر (الـ 5 مصادر الافتراضية المحدثة يومياً):</label>
+  <h2>🌐 PROXY SCRAPER (مواقع متجددة تلقائياً)</h2>
+  <p class="muted">قائمة بمصادر بروكسيات مجانية محدثة يومياً وبشكل تلقائي.</p>
+  <label for="scrapeUrls">روابط المصادر المحدثة تلقائياً:</label>
   <textarea id="scrapeUrls" dir="ltr">https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt
 https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt
 https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt
 https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.txt
-https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt</textarea>
+https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt
+https://raw.githubusercontent.com/prxctr/proxy-list/main/all.txt
+https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies.txt</textarea>
   <div class="row">
-    <button class="btn primary" id="runScrape" type="button">⌕ START SCRAPER</button>
+    <button class="btn primary" id="runScrape" type="button">⌕ جلب البروكسيات تلقائياً</button>
     <button class="btn" id="sendToChecker" type="button">إرسال إلى الفحص ↗</button>
     <button class="btn" id="saveScraped" type="button">حفظ TXT ↓</button>
   </div>
-  <p class="small" id="scrapeStatus">جاهز لاستخراج البروكسيات من المصادر.</p>
+  <p class="small" id="scrapeStatus">جاهز لاستخراج البروكسيات تلقائياً.</p>
   <label for="scrapedProxies">البروكسيات المستخرجة</label>
   <textarea id="scrapedProxies" placeholder="ستظهر النتائج هنا..." readonly></textarea>
 </div>
 
-<div class="footer">FRS PROXY CHAKER · TURBO MAX V5</div>
+<div class="footer">FRS PROXY CHAKER · MASTER EDITION V5</div>
 </main>
 
 <script>
@@ -181,7 +183,7 @@ window.addEventListener('DOMContentLoaded', function() {
   var allWorking = [];
   var allResults = [];
   var totalCount = 0, checkedCount = 0, workingCount = 0, failedCount = 0;
-  var MAX_VISIBLE_ROWS = 60; // Keep table tiny so browser rendering is instant
+  var MAX_VISIBLE_ROWS = 50;
 
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function(c) {
@@ -250,7 +252,6 @@ window.addEventListener('DOMContentLoaded', function() {
   $('start').onclick = function() {
     if (busy) return;
     
-    // Non-blocking asynchronous input parsing using Set (O(N) instead of O(N^2) indexOf!)
     var rawInput = ($('proxies') && $('proxies').value) ? $('proxies').value : '';
     var lines = rawInput.split(/\r?\n/);
     var seen = new Set();
@@ -264,7 +265,7 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     if (!proxies.length) {
-      alert('الرجاء لصق بروكسي واحد على الأقل في المربع.');
+      alert('الرجاء لصق بروكسي واحد على الأقل أو جلبها من خيار Scraper.');
       $('status').textContent = 'ألصق بروكسي واحدًا على الأقل.';
       return;
     }
@@ -291,16 +292,15 @@ window.addEventListener('DOMContentLoaded', function() {
     $('start').disabled = true;
     $('stop').disabled = false;
     $('engine').textContent = 'يفحص…';
-    $('status').textContent = 'بدأ الفحص السريع الخفيف...';
+    $('status').textContent = 'بدأ الفحص...';
     $('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999">جاري الفحص المباشر...</td></tr>';
     updateStatsUI();
 
-    var timeout = Math.max(0.5, Math.min(10, Number($('timeout').value) || 2.5));
+    var timeout = Math.max(0.5, Math.min(10, Number($('timeout').value) || 2));
     var type = $('type').value;
-    var concurrency = Math.max(1, Math.min(40, Number($('concurrency').value) || 15));
+    var concurrency = Math.max(1, Math.min(20, Number($('concurrency').value) || 8));
     
-    // Chunk size 15 proxies per backend request
-    var chunkSize = 15;
+    var chunkSize = 10;
     var index = 0;
 
     async function sendChunk() {
@@ -308,12 +308,17 @@ window.addEventListener('DOMContentLoaded', function() {
       var batch = proxies.slice(index, index + chunkSize);
       index += batch.length;
 
+      var controller = new AbortController();
+      var fetchTimeout = setTimeout(function() { controller.abort(); }, 12000);
+
       try {
         var resp = await fetch('/api/check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ proxies: batch, target: target.href, timeout: timeout, type: type, threads: concurrency })
+          body: JSON.stringify({ proxies: batch, target: target.href, timeout: timeout, type: type, threads: concurrency }),
+          signal: controller.signal
         });
+        clearTimeout(fetchTimeout);
         var data = await resp.json();
         if (data && Array.isArray(data.results)) {
           renderBatch(data.results);
@@ -325,33 +330,22 @@ window.addEventListener('DOMContentLoaded', function() {
           renderBatch(fb);
         }
       } catch (e) {
+        clearTimeout(fetchTimeout);
         var fb2 = [];
+        var msg = e.name === 'AbortError' ? 'انتهت مهلة السيرفر' : 'خطأ اتصال';
         for (var f2 = 0; f2 < batch.length; f2++) {
-          fb2.push({ proxy: batch[f2], status: 'failed', latency_ms: null, detail: 'خطأ شبكة' });
+          fb2.push({ proxy: batch[f2], status: 'failed', latency_ms: null, detail: msg });
         }
         renderBatch(fb2);
       }
     }
 
-    // Parallel browser workers (3 HTTP requests concurrently)
-    var PARALLEL_HTTP_REQUESTS = 3;
-
     (async function runCheckerEngine() {
       try {
-        async function workerLoop() {
-          while (index < proxies.length && !stopFlag) {
-            await sendChunk();
-            // Yield UI thread completely using setTimeout 0
-            await new Promise(function(r) { setTimeout(r, 0); });
-          }
+        while (index < proxies.length && !stopFlag) {
+          await sendChunk();
+          await new Promise(function(r) { setTimeout(r, 10); });
         }
-
-        var workers = [];
-        for (var w = 0; w < PARALLEL_HTTP_REQUESTS; w++) {
-          workers.push(workerLoop());
-        }
-        await Promise.all(workers);
-
       } catch (err) {
         console.error(err);
       } finally {
@@ -385,7 +379,6 @@ window.addEventListener('DOMContentLoaded', function() {
     var name = prompt('اسم ملف TXT:', 'proxies_' + type);
     if (name === null) return;
     
-    // Fast O(N) deduplication using Set
     var uniqueWorking = Array.from(new Set(allWorking));
     downloadText(uniqueWorking.join('\n') + '\n', cleanName(name) + '.txt');
     $('status').textContent = 'تم تجهيز ' + uniqueWorking.length + ' بروكسي صالح للتنزيل.';
@@ -403,9 +396,8 @@ window.addEventListener('DOMContentLoaded', function() {
         urls.push(uStr);
       }
     }
-    if (!urls.length) { $('scrapeStatus').textContent = 'أدخل رابطًا واحدًا على الأقل.'; return; }
     var b = $('runScrape'); b.disabled = true;
-    $('scrapeStatus').textContent = 'جاري جلب البروكسيات المحدثة يومياً...';
+    $('scrapeStatus').textContent = 'جاري جلب البروكسيات المحدثة تلقائياً...';
     try {
       var resp = await fetch('/api/scrape', {
         method: 'POST',
@@ -416,7 +408,7 @@ window.addEventListener('DOMContentLoaded', function() {
       if (!resp.ok) throw new Error(data.error || ('HTTP ' + resp.status));
       scraped = data.proxies || [];
       $('scrapedProxies').value = scraped.join('\n');
-      $('scrapeStatus').textContent = 'تم استخراج ' + scraped.length + ' بروكسي فريد من المصادر المحدثة.';
+      $('scrapeStatus').textContent = 'تم استخراج ' + scraped.length + ' بروكسي فريد من المصادر المتجددة تلقائياً.';
     } catch (e) {
       $('scrapeStatus').textContent = 'فشل الاستخراج: ' + (e.message || e);
     } finally {
@@ -458,7 +450,7 @@ window.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() { URL.revokeObjectURL(u); }, 1000);
   };
 
-  fetch('/api/health').then(async function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function(d) { $('status').textContent = d.ok ? 'المحرّك متصل. الفحص يرسل طلبًا فعليًا عبر البروكسي.' : 'المحرّك غير متصل.'; }).catch(function() { $('status').textContent = 'تعذر الاتصال بالسيرفر.'; });
+  fetch('/api/health').then(async function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function(d) { $('status').textContent = d.ok ? 'المحرّك متصل. جاهز للفحص.' : 'المحرّك غير متصل.'; }).catch(function() { $('status').textContent = 'تعذر الاتصال بالسيرفر.'; });
 });
 </script>
 </body>
