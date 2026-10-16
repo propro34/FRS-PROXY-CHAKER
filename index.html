@@ -5,7 +5,7 @@
 @media(max-width:760px){.wrap{padding:10px}.hero{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.panel{padding:13px}.row{gap:7px}}
 </style></head><body><main class="wrap">
 <header class="head"><div class="logo">FRS</div><div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · CYBER EDITION V5</p></div></header>
-<nav class="nav"><button class="btn primary" id="navCheck">🛡 Proxy Checker</button><button class="btn" id="navScrape">🌐 Proxy Scraper</button></nav>
+<nav class="nav"><button class="btn primary" id="navCheck" type="button">🛡 Proxy Checker</button><button class="btn" id="navScrape" type="button">🌐 Proxy Scraper</button></nav>
 <div id="checkerPage">
 <section class="hero"><div class="panel"><div class="small red">PROXY DIAGNOSTICS</div><h2>Check proxies.<br><span class="red">Keep the working ones.</span></h2><p class="muted">أدخل رابط الاختبار، ألصق البروكسيات، واضغط START. الواجهة مصممة للهاتف والحاسوب.</p></div><div class="panel"><div class="statusline"><span>حالة المحرك</span><b id="engine">جاهز</b></div><div class="statusline"><span>التقدم</span><b id="progressText">0 / 0</b></div><div class="bar"><div id="bar"></div></div><p class="small" id="status">جاهز للفحص.</p></div></section>
 <section class="stats"><div class="stat"><span>الإجمالي</span><b id="total">0</b></div><div class="stat"><span>تم فحصها</span><b id="checked">0</b></div><div class="stat"><span>قابلة للاتصال</span><b id="working" style="color:var(--green)">0</b></div><div class="stat"><span>فاشلة / غير صالحة</span><b id="failed" style="color:#ff7784">0</b></div></section>
@@ -30,8 +30,9 @@
   <div><label for="timeout">المهلة (ثواني)</label><input id="timeout" type="number" min="1" max="15" value="6"></div>
 </div>
 
-<label for="proxies">البروكسيات (واحد في كل سطر)</label><textarea id="proxies" placeholder="8.8.8.8:8080&#10;http://host:port"></textarea><div class="row"><button class="btn primary" id="start">▶ START</button><button class="btn danger" id="stop" disabled>■ STOP</button><button class="btn" id="export">↓ CSV</button><button class="btn" id="saveTxt">↓ TXT صالح</button></div>
-<div class="warning">💡 تم حل مشكلة Bing و Yahoo تماماً عبر محاكاة هيدرز المتصفحات الحقيقية ومعالجة التوجيهات (Redirects & Browser Headers).</div></section>
+<label for="proxies">البروكسيات (واحد في كل سطر)</label><textarea id="proxies" placeholder="8.8.8.8:8080
+http://host:port"></textarea><div class="row"><button class="btn primary" id="start" type="button">▶ START</button><button class="btn danger" id="stop" type="button" disabled>■ STOP</button><button class="btn" id="export" type="button">↓ CSV</button><button class="btn" id="saveTxt" type="button">↓ TXT صالح</button></div>
+<div class="warning">💡 تم حل مشكلة Bing و Yahoo تماماً عبر محاكاة هيدرز المتصفحات الحقيقية ومعالجة التوجيهات.</div></section>
 <section class="panel"><h3>02 / النتائج</h3><div class="tablewrap"><table><thead><tr><th>البروكسي</th><th>الحالة</th><th>الوقت</th><th>التفاصيل</th></tr></thead><tbody id="tbody"><tr><td colspan="4" style="text-align:center;color:#999">ألصق البروكسيات ثم ابدأ.</td></tr></tbody></table></div><p class="small">لا يتم إرسال قائمة البروكسيات إلى خدمة طرف ثالث في هذا المشروع؛ الفحص يتم على السيرفر الذي تنشره أنت.</p></section></div>
 
 <section class="panel hidden" id="scraperPage"><h2>🌐 PROXY SCRAPER (تحديث يومي)</h2><p class="muted">5 مصادر محدثة يومياً مكتوبة افتراضياً. يمكنك إضافة أي روابط أخرى قابلة للاستخراج.</p>
@@ -41,75 +42,127 @@ https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt
 https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt
 https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.txt
 https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt</textarea>
-<div class="row"><button class="btn primary" id="runScrape">⌕ START SCRAPER</button><button class="btn" id="sendToChecker">إرسال إلى الفحص ↗</button><button class="btn" id="saveScraped">حفظ TXT ↓</button></div><p class="small" id="scrapeStatus">جاهز لاستخراج البروكسيات من المصادر.</p><label for="scrapedProxies">البروكسيات المستخرجة</label><textarea id="scrapedProxies" placeholder="ستظهر النتائج هنا..." readonly></textarea><div class="small">الاستخراج يلتقط فقط صيغًا معروفة مثل IP:PORT أو scheme://host:port.</div></section>
+<div class="row"><button class="btn primary" id="runScrape" type="button">⌕ START SCRAPER</button><button class="btn" id="sendToChecker" type="button">إرسال إلى الفحص ↗</button><button class="btn" id="saveScraped" type="button">حفظ TXT ↓</button></div><p class="small" id="scrapeStatus">جاهز لاستخراج البروكسيات من المصادر.</p><label for="scrapedProxies">البروكسيات المستخرجة</label><textarea id="scrapedProxies" placeholder="ستظهر النتائج هنا..." readonly></textarea><div class="small">الاستخراج يلتقط فقط صيغًا معروفة مثل IP:PORT أو scheme://host:port.</div></section>
 <div class="footer">FRS PROXY CHAKER · PRIVATE WEB EDITION</div></main>
 <script>
-const $=id=>document.getElementById(id);
-let busy=false,stopFlag=false,rows=[];
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function render(){
-  const done=rows.length, ok=rows.filter(r=>r.status==='working').length, bad=rows.filter(r=>r.status!=='working').length;
-  $('total').textContent=window.totalToCheck||0;
-  $('checked').textContent=done;
-  $('working').textContent=ok;
-  $('failed').textContent=bad;
-  $('progressText').textContent=`${done} / ${window.totalToCheck||0}`;
-  $('bar').style.width=(window.totalToCheck?Math.min(100,done/window.totalToCheck*100):0)+'%';
-  $('tbody').innerHTML=rows.length?rows.map(r=>`<tr><td dir="ltr">${esc(r.proxy)}</td><td><span class="tag ${r.status==='working'?'good':r.status==='failed'?'bad':'warn'}">${r.status==='working'?'WORKING':r.status==='invalid'?'INVALID':r.status==='blocked'?'BLOCKED':'FAILED'}</span></td><td>${r.latency_ms==null?'—':r.latency_ms+' ms'}</td><td>${esc(r.detail)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#999">ألصق البروكسيات ثم ابدأ.</td></tr>';
-}
-$('start').onclick=async()=>{
-  if(busy)return;
-  const proxies=[...new Set($('proxies').value.split(/?
-/).map(s=>s.trim()).filter(Boolean))];
-  if(!proxies.length){$('status').textContent='ألصق بروكسي واحدًا على الأقل.';return;}
-  let target;
-  try{target=new URL($('target').value);if(!['http:','https:'].includes(target.protocol))throw new Error();}
-  catch{$('status').textContent='رابط الموقع غير صحيح.';return;}
-  busy=true;stopFlag=false;rows=[];window.totalToCheck=proxies.length;
-  $('start').disabled=true;$('stop').disabled=false;$('engine').textContent='يفحص…';$('status').textContent='بدأ الفحص السريع...';render();
-  const timeout=Math.max(1,Math.min(15,Number($('timeout').value)||6));
-  const threads=Math.max(10,Math.min(200,Number($('threads').value)||100));
-  const type=$('type').value; 
-  const batchSize=threads;
-  try{
-    for(let i=0;i<proxies.length;i+=batchSize){
-      if(stopFlag)break;
-      const batch=proxies.slice(i,i+batchSize);
-      $('status').textContent=`جاري فحص ${Math.min(i+batch.length,proxies.length)} من ${proxies.length} (سرعة ${threads} Threads)…`;
-      const resp=await fetch('/api/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proxies:batch,target:target.href,timeout,type,threads})});
-      let data;
-      try{data=await resp.json();}catch{throw new Error(`السيرفر رجّع استجابة غير مفهومة (HTTP ${resp.status}).`);}
-      if(!resp.ok)throw new Error(data.error||`فشل طلب الفحص (HTTP ${resp.status}).`);
-      if(!Array.isArray(data.results))throw new Error('السيرفر لم يرجع قائمة نتائج.');
-      rows.push(...data.results);render();
-      $('status').textContent=`تم فحص ${rows.length} من ${proxies.length}. صالح: ${rows.filter(r=>r.status==='working').length}.`;
-    }
-    if(stopFlag)$('status').textContent=`توقف الفحص عند ${rows.length} من ${proxies.length}.`;
-    else $('status').textContent=`اكتمل الفحص: ${rows.length} من ${proxies.length}. صالح: ${rows.filter(r=>r.status==='working').length}؛ فاشل/مرفوض: ${rows.filter(r=>r.status!=='working').length}.`;
-  }catch(e){$('status').textContent='خطأ: '+(e.message||e);}
-  finally{busy=false;$('start').disabled=false;$('stop').disabled=true;$('engine').textContent=stopFlag?'توقف':'انتهى';render();}
-};
-$('stop').onclick=()=>{stopFlag=true;$('status').textContent='سيتم الإيقاف بعد الدفعة الحالية.';$('stop').disabled=true;};
+window.addEventListener('DOMContentLoaded', () => {
+  const $ = id => document.getElementById(id);
+  let busy = false, stopFlag = false, rows = [];
 
-let scraped=[];
-function downloadText(text, filename){const u=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=u;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(u),1500);}
-function cleanName(s){return String(s||'proxies').replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'').slice(0,50)||'proxies';}
-function saveWorkingTxt(){const ok=rows.filter(r=>r.status==='working');if(!ok.length){$('status').textContent='ما كاين حتى بروكسي ناجح للحفظ.';return;}const type=$('type').value==='auto'?'mixed':$('type').value;const name=prompt('اسم ملف TXT:',`proxies_${type}`);if(name===null)return;downloadText([...new Set(ok.map(r=>r.proxy))].join('
-')+'
-',cleanName(name)+'.txt');$('status').textContent=`تم تجهيز ${ok.length} بروكسي صالح للتنزيل في ملف TXT.`;}
-$('saveTxt').onclick=saveWorkingTxt;
-$('navCheck').onclick=()=>{$('checkerPage').classList.remove('hidden');$('scraperPage').classList.add('hidden');$('navCheck').classList.add('primary');$('navScrape').classList.remove('primary');};
-$('navScrape').onclick=()=>{$('checkerPage').classList.add('hidden');$('scraperPage').classList.remove('hidden');$('navScrape').classList.add('primary');$('navCheck').classList.remove('primary');};
-$('runScrape').onclick=async()=>{const urls=[...new Set($('scrapeUrls').value.split(/?
-/).map(x=>x.trim()).filter(Boolean))];if(!urls.length){$('scrapeStatus').textContent='أدخل رابطًا واحدًا على الأقل.';return;}const b=$('runScrape');b.disabled=true;$('scrapeStatus').textContent='جاري جلب البروكسيات المحدثة يومياً...';try{const resp=await fetch('/api/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({urls})});const data=await resp.json();if(!resp.ok)throw new Error(data.error||`HTTP ${resp.status}`);scraped=data.proxies||[];$('scrapedProxies').value=scraped.join('
-');$('scrapeStatus').textContent=`تم استخراج ${scraped.length} بروكسي فريد من المصادر المحدثة.`;}catch(e){$('scrapeStatus').textContent='فشل الاستخراج: '+(e.message||e);}finally{b.disabled=false;}};
-$('sendToChecker').onclick=()=>{if(!scraped.length){$('scrapeStatus').textContent='استخرج قائمة أولًا.';return;}$('proxies').value=[...new Set([...$('proxies').value.split(/?
-/).map(x=>x.trim()).filter(Boolean),...scraped])].join('
-');$('navCheck').click();$('status').textContent=`تم إرسال ${scraped.length} بروكسي إلى الفاحص.`;};
-$('saveScraped').onclick=()=>{if(!scraped.length){$('scrapeStatus').textContent='لا توجد بروكسيات لحفظها.';return;}const name=prompt('اسم ملف TXT:','scraped_proxies');if(name!==null)downloadText(scraped.join('
-')+'
-',cleanName(name)+'.txt');};
-$('export').onclick=()=>{if(!rows.length){$('status').textContent='لا توجد نتائج للتصدير.';return;}const csv='﻿'+[['proxy','status','latency_ms','detail'],...rows.map(r=>[r.proxy,r.status,r.latency_ms??'',r.detail])].map(a=>a.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('
-');const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=u;a.download='frs-proxy-results.csv';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
-fetch('/api/health').then(async r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(d=>{$('status').textContent=d.ok?'المحرّك متصل. الفحص يرسل طلبًا فعليًا عبر البروكسي.':'المحرّك غير متصل.';}).catch(()=>{$('status').textContent='تعذر الاتصال بالسيرفر.';});
+  function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  function render() {
+    const done = rows.length, ok = rows.filter(r => r.status === 'working').length, bad = rows.filter(r => r.status !== 'working').length;
+    $('total').textContent = window.totalToCheck || 0;
+    $('checked').textContent = done;
+    $('working').textContent = ok;
+    $('failed').textContent = bad;
+    $('progressText').textContent = done + ' / ' + (window.totalToCheck || 0);
+    $('bar').style.width = (window.totalToCheck ? Math.min(100, done / window.totalToCheck * 100) : 0) + '%';
+    $('tbody').innerHTML = rows.length ? rows.map(r => '<tr><td dir="ltr">' + esc(r.proxy) + '</td><td><span class="tag ' + (r.status === 'working' ? 'good' : r.status === 'invalid' ? 'bad' : 'warn') + '">' + (r.status === 'working' ? 'WORKING' : r.status === 'invalid' ? 'INVALID' : r.status === 'blocked' ? 'BLOCKED' : 'FAILED') + '</span></td><td>' + (r.latency_ms == null ? '—' : r.latency_ms + ' ms') + '</td><td>' + esc(r.detail) + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:#999">ألصق البروكسيات ثم ابدأ.</td></tr>';
+  }
+
+  $('navCheck').onclick = () => {
+    $('checkerPage').classList.remove('hidden');
+    $('scraperPage').classList.add('hidden');
+    $('navCheck').classList.add('primary');
+    $('navScrape').classList.remove('primary');
+  };
+
+  $('navScrape').onclick = () => {
+    $('checkerPage').classList.add('hidden');
+    $('scraperPage').classList.remove('hidden');
+    $('navScrape').classList.add('primary');
+    $('navCheck').classList.remove('primary');
+  };
+
+  $('start').onclick = async () => {
+    if (busy) return;
+    const lines = $('proxies').value.split(/\r?\n/);
+    const proxies = [...new Set(lines.map(s => s.trim()).filter(Boolean))];
+    if (!proxies.length) { $('status').textContent = 'ألصق بروكسي واحدًا على الأقل.'; return; }
+    let target;
+    try { target = new URL($('target').value); if (!['http:', 'https:'].includes(target.protocol)) throw new Error(); }
+    catch { $('status').textContent = 'رابط الموقع غير صحيح.'; return; }
+    busy = true; stopFlag = false; rows = []; window.totalToCheck = proxies.length;
+    $('start').disabled = true; $('stop').disabled = false; $('engine').textContent = 'يفحص…'; $('status').textContent = 'بدأ الفحص السريع...'; render();
+    const timeout = Math.max(1, Math.min(15, Number($('timeout').value) || 6));
+    const threads = Math.max(10, Math.min(200, Number($('threads').value) || 100));
+    const type = $('type').value;
+    const batchSize = threads;
+    try {
+      for (let i = 0; i < proxies.length; i += batchSize) {
+        if (stopFlag) break;
+        const batch = proxies.slice(i, i + batchSize);
+        $('status').textContent = 'جاري فحص ' + Math.min(i + batch.length, proxies.length) + ' من ' + proxies.length + ' (سرعة ' + threads + ' Threads)…';
+        const resp = await fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proxies: batch, target: target.href, timeout, type, threads }) });
+        let data;
+        try { data = await resp.json(); } catch { throw new Error('السيرفر رجّع استجابة غير مفهومة (HTTP ' + resp.status + ').'); }
+        if (!resp.ok) throw new Error(data.error || ('فشل طلب الفحص (HTTP ' + resp.status + ').'));
+        if (!Array.isArray(data.results)) throw new Error('السيرفر لم يرجع قائمة نتائج.');
+        rows.push(...data.results); render();
+        $('status').textContent = 'تم فحص ' + rows.length + ' من ' + proxies.length + '. صالح: ' + rows.filter(r => r.status === 'working').length + '.';
+      }
+      if (stopFlag) $('status').textContent = 'توقف الفحص عند ' + rows.length + ' من ' + proxies.length + '.';
+      else $('status').textContent = 'اكتمل الفحص: ' + rows.length + ' من ' + proxies.length + '. صالح: ' + rows.filter(r => r.status === 'working').length + '؛ فاشل/مرفوض: ' + rows.filter(r => r.status !== 'working').length + '.';
+    } catch (e) { $('status').textContent = 'خطأ: ' + (e.message || e); }
+    finally { busy = false; $('start').disabled = false; $('stop').disabled = true; $('engine').textContent = stopFlag ? 'توقف' : 'انتهى'; render(); }
+  };
+
+  $('stop').onclick = () => { stopFlag = true; $('status').textContent = 'سيتم الإيقاف بعد الدفعة الحالية.'; $('stop').disabled = true; };
+
+  let scraped = [];
+  function downloadText(text, filename) { const u = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' })); const a = document.createElement('a'); a.href = u; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1500); }
+  function cleanName(s) { return String(s || 'proxies').replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 50) || 'proxies'; }
+
+  $('saveTxt').onclick = () => {
+    const ok = rows.filter(r => r.status === 'working');
+    if (!ok.length) { $('status').textContent = 'ما كاين حتى بروكسي ناجح للحفظ.'; return; }
+    const type = $('type').value === 'auto' ? 'mixed' : $('type').value;
+    const name = prompt('اسم ملف TXT:', 'proxies_' + type);
+    if (name === null) return;
+    downloadText([...new Set(ok.map(r => r.proxy))].join('\n') + '\n', cleanName(name) + '.txt');
+    $('status').textContent = 'تم تجهيز ' + ok.length + ' بروكسي صالح للتنزيل في ملف TXT.';
+  };
+
+  $('runScrape').onclick = async () => {
+    const urls = [...new Set($('scrapeUrls').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean))];
+    if (!urls.length) { $('scrapeStatus').textContent = 'أدخل رابطًا واحدًا على الأقل.'; return; }
+    const b = $('runScrape'); b.disabled = true;
+    $('scrapeStatus').textContent = 'جاري جلب البروكسيات المحدثة يومياً...';
+    try {
+      const resp = await fetch('/api/scrape', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urls }) });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || ('HTTP ' + resp.status));
+      scraped = data.proxies || [];
+      $('scrapedProxies').value = scraped.join('\n');
+      $('scrapeStatus').textContent = 'تم استخراج ' + scraped.length + ' بروكسي فريد من المصادر المحدثة.';
+    } catch (e) { $('scrapeStatus').textContent = 'فشل الاستخراج: ' + (e.message || e); }
+    finally { b.disabled = false; }
+  };
+
+  $('sendToChecker').onclick = () => {
+    if (!scraped.length) { $('scrapeStatus').textContent = 'استخرج قائمة أولًا.'; return; }
+    const currentLines = $('proxies').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    $('proxies').value = [...new Set([...currentLines, ...scraped])].join('\n');
+    $('navCheck').click();
+    $('status').textContent = 'تم إرسال ' + scraped.length + ' بروكسي إلى الفاحص.';
+  };
+
+  $('saveScraped').onclick = () => {
+    if (!scraped.length) { $('scrapeStatus').textContent = 'لا توجد بروكسيات لحفظها.'; return; }
+    const name = prompt('اسم ملف TXT:', 'scraped_proxies');
+    if (name !== null) downloadText(scraped.join('\n') + '\n', cleanName(name) + '.txt');
+  };
+
+  $('export').onclick = () => {
+    if (!rows.length) { $('status').textContent = 'لا توجد نتائج للتصدير.'; return; }
+    const csv = '\uFEFF' + [['proxy', 'status', 'latency_ms', 'detail'], ...rows.map(r => [r.proxy, r.status, r.latency_ms ?? '', r.detail])].map(a => a.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
+    const u = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const a = document.createElement('a'); a.href = u; a.download = 'frs-proxy-results.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(u), 1000);
+  };
+
+  fetch('/api/health').then(async r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(d => { $('status').textContent = d.ok ? 'المحرّك متصل. الفحص يرسل طلبًا فعليًا عبر البروكسي.' : 'المحرّك غير متصل.'; }).catch(() => { $('status').textContent = 'تعذر الاتصال بالسيرفر.'; });
+});
 </script></body></html>
