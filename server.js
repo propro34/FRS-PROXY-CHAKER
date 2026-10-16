@@ -178,8 +178,7 @@ app.post('/api/scrape', async (req, res) => {
         },
         validateStatus: s => s >= 200 && s < 400
       });
-      const body = String(response.data || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, '
-').replace(/&nbsp;|&#160;/gi, ' ');
+      const body = String(response.data || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, '\n').replace(/&nbsp;|&#160;/gi, ' ');
       const matches = body.match(/(?:https?|socks4|socks5):\/\/[\w.\-\[\]:]+(?::\d{1,5})?|(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}/gi) || [];
       for (const item of matches) {
         const candidate = item.trim().replace(/[),.;]+$/, '');
