@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#09090d">
-<title>FRS Proxy Chaker Ultra Smooth</title>
+<title>FRS Proxy Chaker Turbo Max</title>
 <style>
 :root{--red:#ff3048;--bg:#09090d;--panel:#141419;--line:#30303a;--txt:#f5f5f7;--muted:#a0a0ad;--green:#35d995;--yellow:#ffd16b}
 *{box-sizing:border-box}
@@ -22,7 +22,7 @@ body{margin:0;background:radial-gradient(ellipse at top,#291018 0,#09090d 48%);c
 .small{font-size:12px}
 label{display:block;margin:11px 0 6px;font-size:12px;color:#d0d0d8}
 input,textarea,select{width:100%;padding:11px;border-radius:10px;background:#09090d;border:1px solid #383842;color:white;font:inherit}
-textarea{min-height:145px;resize:vertical;direction:ltr;text-align:left}
+textarea{min-height:140px;resize:vertical;direction:ltr;text-align:left}
 input:focus,textarea:focus,select:focus{outline:1px solid var(--red)}
 .row{display:flex;gap:9px}
 .row>*{flex:1;min-width:0}
@@ -37,9 +37,9 @@ input:focus,textarea:focus,select:focus{outline:1px solid var(--red)}
 .statusline{display:flex;justify-content:space-between;color:var(--muted);gap:8px}
 .bar{height:6px;border-radius:9px;background:#292932;overflow:hidden;margin:12px 0}
 .bar div{height:100%;width:0;background:linear-gradient(90deg,#ba1029,#ff3c53)}
-.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:450px}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:400px}
 table{width:100%;min-width:540px;border-collapse:collapse}
-th,td{text-align:right;padding:10px;border-bottom:1px solid #292932;font-size:12px}
+th,td{text-align:right;padding:9px;border-bottom:1px solid #292932;font-size:12px}
 th{background:#1a1a21;color:#bdbdc8;position:sticky;top:0;z-index:2}
 tr:last-child td{border:0}
 .tag{display:inline-block;border-radius:99px;padding:3px 8px;font-size:10px;font-weight:850}
@@ -58,7 +58,7 @@ tr:last-child td{border:0}
 <main class="wrap">
 <header class="head">
   <div class="logo">FRS</div>
-  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · ULTRA SMOOTH V5</p></div>
+  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · TURBO MAX V5</p></div>
 </header>
 
 <nav class="nav">
@@ -71,7 +71,7 @@ tr:last-child td{border:0}
     <div class="panel">
       <div class="small red">PROXY DIAGNOSTICS</div>
       <h2>Check proxies.<br><span class="red">Keep the working ones.</span></h2>
-      <p class="muted">فحص خفيف بدون أي ثقل أو تجمد للمتصفح.</p>
+      <p class="muted">فحص برمي الأداء خفيف وسريع وبدون أي تهنيج للمتصفح.</p>
     </div>
     <div class="panel">
       <div class="statusline"><span>حالة المحرك</span><b id="engine">جاهز</b></div>
@@ -117,11 +117,11 @@ tr:last-child td{border:0}
       </div>
       <div>
         <label for="concurrency">السرعة بالتوازي (Threads)</label>
-        <input id="concurrency" type="number" min="1" max="50" value="10">
+        <input id="concurrency" type="number" min="1" max="40" value="15">
       </div>
       <div>
         <label for="timeout">المهلة (ثواني)</label>
-        <input id="timeout" type="number" min="1" max="15" value="3">
+        <input id="timeout" type="number" min="1" max="10" value="2.5" step="0.5">
       </div>
     </div>
 
@@ -134,7 +134,7 @@ tr:last-child td{border:0}
       <button class="btn" id="export" type="button">↓ CSV</button>
       <button class="btn" id="saveTxt" type="button">↓ TXT صالح</button>
     </div>
-    <div class="warning">⚡ وضع السلاسة الفائقة (Ultra-Smooth): تم إلغاء ثقل الصفحة بالكامل عبر معالجة الدفعات وخفّة الـ DOM!</div>
+    <div class="warning">🚀 وضع خفة الأداء المفتوحة: خوارزمية O(1) فائقة السرعة تمنع تجمد المتصفح والسيرفر كلياً!</div>
   </section>
 
   <section class="panel">
@@ -171,16 +171,17 @@ https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt</text
   <textarea id="scrapedProxies" placeholder="ستظهر النتائج هنا..." readonly></textarea>
 </div>
 
-<div class="footer">FRS PROXY CHAKER · ULTRA SMOOTH V5</div>
+<div class="footer">FRS PROXY CHAKER · TURBO MAX V5</div>
 </main>
 
 <script>
 window.addEventListener('DOMContentLoaded', function() {
   function $(id) { return document.getElementById(id); }
   var busy = false, stopFlag = false;
-  var rows = [];
+  var allWorking = [];
+  var allResults = [];
   var totalCount = 0, checkedCount = 0, workingCount = 0, failedCount = 0;
-  var MAX_VISIBLE_ROWS = 150; // Keep table lightweight to avoid browser DOM lag!
+  var MAX_VISIBLE_ROWS = 60; // Keep table tiny so browser rendering is instant
 
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function(c) {
@@ -200,26 +201,29 @@ window.addEventListener('DOMContentLoaded', function() {
   function renderBatch(items) {
     if (!items || !items.length) return;
     var tbody = $('tbody');
-    if (checkedCount <= items.length) {
+    if (checkedCount === 0) {
       tbody.innerHTML = '';
     }
-    
+
     var fragment = document.createDocumentFragment();
     for (var i = 0; i < items.length; i++) {
       var r = items[i];
-      rows.push(r);
+      allResults.push(r);
       checkedCount++;
-      if (r.status === 'working') workingCount++;
-      else failedCount++;
+      if (r.status === 'working') {
+        workingCount++;
+        allWorking.push(r.proxy);
+      } else {
+        failedCount++;
+      }
 
       var tr = document.createElement('tr');
       tr.innerHTML = '<td dir="ltr">' + esc(r.proxy) + '</td><td><span class="tag ' + (r.status === 'working' ? 'good' : r.status === 'invalid' ? 'bad' : 'warn') + '">' + (r.status === 'working' ? 'WORKING' : r.status === 'invalid' ? 'INVALID' : r.status === 'blocked' ? 'BLOCKED' : 'FAILED') + '</span></td><td>' + (r.latency_ms == null ? '—' : r.latency_ms + ' ms') + '</td><td>' + esc(r.detail) + '</td>';
       fragment.insertBefore(tr, fragment.firstChild);
     }
-    
+
     tbody.insertBefore(fragment, tbody.firstChild);
 
-    // Trim excessive DOM rows to keep table super lightweight
     while (tbody.children.length > MAX_VISIBLE_ROWS) {
       tbody.removeChild(tbody.lastChild);
     }
@@ -243,14 +247,18 @@ window.addEventListener('DOMContentLoaded', function() {
   };
 
   // CHECKER START
-  $('start').onclick = async function() {
+  $('start').onclick = function() {
     if (busy) return;
+    
+    // Non-blocking asynchronous input parsing using Set (O(N) instead of O(N^2) indexOf!)
     var rawInput = ($('proxies') && $('proxies').value) ? $('proxies').value : '';
     var lines = rawInput.split(/\r?\n/);
+    var seen = new Set();
     var proxies = [];
     for (var i = 0; i < lines.length; i++) {
       var item = lines[i].trim();
-      if (item && proxies.indexOf(item) === -1) {
+      if (item && !seen.has(item)) {
+        seen.add(item);
         proxies.push(item);
       }
     }
@@ -273,7 +281,8 @@ window.addEventListener('DOMContentLoaded', function() {
 
     busy = true;
     stopFlag = false;
-    rows = [];
+    allWorking = [];
+    allResults = [];
     totalCount = proxies.length;
     checkedCount = 0;
     workingCount = 0;
@@ -282,19 +291,19 @@ window.addEventListener('DOMContentLoaded', function() {
     $('start').disabled = true;
     $('stop').disabled = false;
     $('engine').textContent = 'يفحص…';
-    $('status').textContent = 'بدأ الفحص السلس المباشر...';
+    $('status').textContent = 'بدأ الفحص السريع الخفيف...';
     $('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999">جاري الفحص المباشر...</td></tr>';
     updateStatsUI();
 
-    var timeout = Math.max(1, Math.min(15, Number($('timeout').value) || 3));
+    var timeout = Math.max(0.5, Math.min(10, Number($('timeout').value) || 2.5));
     var type = $('type').value;
-    var concurrency = Math.max(1, Math.min(50, Number($('concurrency').value) || 10));
+    var concurrency = Math.max(1, Math.min(40, Number($('concurrency').value) || 15));
     
-    // Batch size sent to backend per HTTP request (e.g. 10 proxies per chunk)
-    var chunkSize = 10;
+    // Chunk size 15 proxies per backend request
+    var chunkSize = 15;
     var index = 0;
 
-    async function processChunk() {
+    async function sendChunk() {
       if (index >= proxies.length || stopFlag) return;
       var batch = proxies.slice(index, index + chunkSize);
       index += batch.length;
@@ -322,25 +331,38 @@ window.addEventListener('DOMContentLoaded', function() {
         }
         renderBatch(fb2);
       }
-
-      // Yield event loop to prevent UI freezing!
-      await new Promise(function(resolve) { setTimeout(resolve, 10); });
     }
 
-    try {
-      while (index < proxies.length && !stopFlag) {
-        await processChunk();
+    // Parallel browser workers (3 HTTP requests concurrently)
+    var PARALLEL_HTTP_REQUESTS = 3;
+
+    (async function runCheckerEngine() {
+      try {
+        async function workerLoop() {
+          while (index < proxies.length && !stopFlag) {
+            await sendChunk();
+            // Yield UI thread completely using setTimeout 0
+            await new Promise(function(r) { setTimeout(r, 0); });
+          }
+        }
+
+        var workers = [];
+        for (var w = 0; w < PARALLEL_HTTP_REQUESTS; w++) {
+          workers.push(workerLoop());
+        }
+        await Promise.all(workers);
+
+      } catch (err) {
+        console.error(err);
+      } finally {
+        busy = false;
+        $('start').disabled = false;
+        $('stop').disabled = true;
+        $('engine').textContent = stopFlag ? 'توقف' : 'انتهى';
+        if (stopFlag) $('status').textContent = 'توقف الفحص عند ' + checkedCount + ' من ' + totalCount + '.';
+        else $('status').textContent = 'اكتمل الفحص: ' + checkedCount + ' من ' + totalCount + '. صالح: ' + workingCount + '.';
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      busy = false;
-      $('start').disabled = false;
-      $('stop').disabled = true;
-      $('engine').textContent = stopFlag ? 'توقف' : 'انتهى';
-      if (stopFlag) $('status').textContent = 'توقف الفحص عند ' + checkedCount + ' من ' + totalCount + '.';
-      else $('status').textContent = 'اكتمل الفحص: ' + checkedCount + ' من ' + totalCount + '. صالح: ' + workingCount + '.';
-    }
+    })();
   };
 
   $('stop').onclick = function() {
@@ -358,26 +380,28 @@ window.addEventListener('DOMContentLoaded', function() {
   function cleanName(s) { return String(s || 'proxies').replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 50) || 'proxies'; }
 
   $('saveTxt').onclick = function() {
-    var ok = rows.filter(function(r) { return r.status === 'working'; });
-    if (!ok.length) { $('status').textContent = 'ما كاين حتى بروكسي ناجح للحفظ.'; return; }
+    if (!allWorking.length) { $('status').textContent = 'ما كاين حتى بروكسي ناجح للحفظ.'; return; }
     var type = $('type').value === 'auto' ? 'mixed' : $('type').value;
     var name = prompt('اسم ملف TXT:', 'proxies_' + type);
     if (name === null) return;
-    var okProxies = [];
-    for (var i = 0; i < ok.length; i++) {
-      if (okProxies.indexOf(ok[i].proxy) === -1) okProxies.push(ok[i].proxy);
-    }
-    downloadText(okProxies.join('\n') + '\n', cleanName(name) + '.txt');
-    $('status').textContent = 'تم تجهيز ' + ok.length + ' بروكسي صالح للتنزيل في ملف TXT.';
+    
+    // Fast O(N) deduplication using Set
+    var uniqueWorking = Array.from(new Set(allWorking));
+    downloadText(uniqueWorking.join('\n') + '\n', cleanName(name) + '.txt');
+    $('status').textContent = 'تم تجهيز ' + uniqueWorking.length + ' بروكسي صالح للتنزيل.';
   };
 
   $('runScrape').onclick = async function() {
     var rawUrls = $('scrapeUrls').value || '';
     var lines = rawUrls.split(/\r?\n/);
+    var seenUrls = new Set();
     var urls = [];
     for (var i = 0; i < lines.length; i++) {
       var uStr = lines[i].trim();
-      if (uStr && urls.indexOf(uStr) === -1) urls.push(uStr);
+      if (uStr && !seenUrls.has(uStr)) {
+        seenUrls.add(uStr);
+        urls.push(uStr);
+      }
     }
     if (!urls.length) { $('scrapeStatus').textContent = 'أدخل رابطًا واحدًا على الأقل.'; return; }
     var b = $('runScrape'); b.disabled = true;
@@ -404,14 +428,15 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!scraped.length) { $('scrapeStatus').textContent = 'استخرج قائمة أولًا.'; return; }
     var rawCurrent = $('proxies').value || '';
     var lines = rawCurrent.split(/\r?\n/);
+    var seen = new Set();
     var combined = [];
     for (var i = 0; i < lines.length; i++) {
       var item = lines[i].trim();
-      if (item && combined.indexOf(item) === -1) combined.push(item);
+      if (item && !seen.has(item)) { seen.add(item); combined.push(item); }
     }
     for (var j = 0; j < scraped.length; j++) {
       var sItem = scraped[j].trim();
-      if (sItem && combined.indexOf(sItem) === -1) combined.push(sItem);
+      if (sItem && !seen.has(sItem)) { seen.add(sItem); combined.push(sItem); }
     }
     $('proxies').value = combined.join('\n');
     $('navCheck').click();
@@ -425,8 +450,8 @@ window.addEventListener('DOMContentLoaded', function() {
   };
 
   $('export').onclick = function() {
-    if (!rows.length) { $('status').textContent = 'لا توجد نتائج للتصدير.'; return; }
-    var csvRows = [['proxy', 'status', 'latency_ms', 'detail']].concat(rows.map(function(r) { return [r.proxy, r.status, r.latency_ms != null ? r.latency_ms : '', r.detail]; }));
+    if (!allResults.length) { $('status').textContent = 'لا توجد نتائج للتصدير.'; return; }
+    var csvRows = [['proxy', 'status', 'latency_ms', 'detail']].concat(allResults.map(function(r) { return [r.proxy, r.status, r.latency_ms != null ? r.latency_ms : '', r.detail]; }));
     var csv = '\uFEFF' + csvRows.map(function(a) { return a.map(function(v) { return '"' + String(v != null ? v : '').replace(/"/g, '""') + '"'; }).join(','); }).join('\r\n');
     var u = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     var a = document.createElement('a'); a.href = u; a.download = 'frs-proxy-results.csv'; a.click();

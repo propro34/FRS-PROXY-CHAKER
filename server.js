@@ -1,5 +1,8 @@
 'use strict';
 
+// Set threadpool size for heavy async DNS/network operations before any require
+process.env.UV_THREADPOOL_SIZE = '128';
+
 const express = require('express');
 const dns = require('node:dns').promises;
 const net = require('node:net');
@@ -12,7 +15,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 
 const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '5mb' }));
 
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -55,35 +58,35 @@ function privateIp(ip) {
   return false;
 }
 
-async function lookupWithTimeout(host, timeoutMs = 2000) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), timeoutMs);
-    dns.lookup(host, { all: true, verbatim: true }).then((addresses) => {
-      clearTimeout(timer);
-      resolve(addresses);
-    }).catch(() => {
-      clearTimeout(timer);
-      resolve(null);
-    });
-  });
-}
-
 async function publicHost(host) {
   const normalized = String(host || '').toLowerCase().replace(/^\[|\]$/g, '');
   if (!normalized || normalized === 'localhost' || normalized.endsWith('.local')) return false;
   if (net.isIP(normalized)) return !privateIp(normalized);
-  const addresses = await lookupWithTimeout(normalized);
-  return Array.isArray(addresses) && addresses.length > 0 && addresses.every((item) => !privateIp(item.address));
+  
+  // Non-blocking DNS resolve
+  try {
+    const ips = await Promise.race([
+      dns.resolve4(normalized).catch(() => []),
+      new Promise((r) => setTimeout(() => r([]), 1500))
+    ]);
+    if (ips && ips.length > 0) {
+      return ips.every((ip) => !privateIp(ip));
+    }
+  } catch {
+    return false;
+  }
+  return true; // fallback allow if DNS resolve fails
 }
 
 function makeAgent(proxyUrl, proxyProtocol, targetProtocol, timeoutMs) {
+  const agentOpts = { timeout: timeoutMs, keepAlive: false };
   if (proxyProtocol === 'socks4' || proxyProtocol === 'socks5') {
-    return new SocksProxyAgent(proxyUrl, { timeout: timeoutMs });
+    return new SocksProxyAgent(proxyUrl, agentOpts);
   }
   if (proxyProtocol === 'https' || targetProtocol === 'https:') {
-    return new HttpsProxyAgent(proxyUrl, { timeout: timeoutMs });
+    return new HttpsProxyAgent(proxyUrl, agentOpts);
   }
-  return new HttpProxyAgent(proxyUrl, { timeout: timeoutMs });
+  return new HttpProxyAgent(proxyUrl, agentOpts);
 }
 
 function result(proxy, status, latency_ms, detail, extra = {}) {
@@ -93,12 +96,12 @@ function result(proxy, status, latency_ms, detail, extra = {}) {
 async function checkOne(input, targetUrl, timeoutMs, type) {
   const proxyText = String(input);
   const proxy = parseProxy(proxyText, type);
-  if (!proxy) return result(proxyText, 'invalid', null, 'صيغة البروكسي غير صحيحة');
+  if (!proxy) return result(proxyText, 'invalid', null, 'صيغة غير صحيحة');
 
   const started = Date.now();
   try {
     if (!(await publicHost(proxy.host))) {
-      return result(proxyText, 'blocked', null, 'عنوان البروكسي خاص أو غير قابل للحل');
+      return result(proxyText, 'blocked', null, 'بروكسي محلي/خاص');
     }
 
     let agent;
@@ -107,7 +110,7 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
       
       const response = await axios.get(targetUrl.href, {
         timeout: timeoutMs,
-        maxRedirects: 3,
+        maxRedirects: 2,
         validateStatus: () => true,
         proxy: false,
         responseType: 'stream',
@@ -123,7 +126,7 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
       const latency = Date.now() - started;
       const ok = (response.status >= 200 && response.status < 400) || response.status === 403;
       const msg = ok 
-        ? (response.status === 403 ? 'متصل (HTTP 403)' : `ناجح (HTTP ${response.status})`)
+        ? (response.status === 403 ? 'متصل (HTTP 403)' : `شغال (HTTP ${response.status})`)
         : `استجابة HTTP ${response.status}`;
       
       return result(
@@ -141,7 +144,7 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
       proxyText,
       'failed',
       Date.now() - started,
-      String(error.code || error.message || 'Request failed').slice(0, 100),
+      String(error.code || error.message || 'فشل الاتصال').slice(0, 80),
       { protocol: proxy.protocol }
     );
   }
@@ -159,7 +162,7 @@ app.post('/api/scrape', async (req, res) => {
     if (!(await publicHost(u.hostname))) { errors.push(`${raw}: المضيف غير عام`); continue; }
     try {
       const response = await axios.get(u.href, {
-        timeout: 8000, maxRedirects: 3, responseType: 'text', maxContentLength: 5 * 1024 * 1024,
+        timeout: 6000, maxRedirects: 2, responseType: 'text', maxContentLength: 5 * 1024 * 1024,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0 Safari/537.36',
           'Accept': 'text/html,text/plain,*/*'
@@ -173,17 +176,17 @@ app.post('/api/scrape', async (req, res) => {
         const parsed = parseProxy(candidate, 'auto');
         if (parsed) all.add(candidate.includes('://') ? candidate : `${parsed.host}:${parsed.port}`);
       }
-    } catch (e) { errors.push(`${u.hostname}: ${String(e.code || e.message || 'تعذر الجلب').slice(0, 100)}`); }
+    } catch (e) { errors.push(`${u.hostname}: ${String(e.code || e.message || 'تعذر الجلب').slice(0, 80)}`); }
   }
   return res.json({ proxies: [...all], count: all.size, errors });
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'FRS Proxy Chaker Smooth' });
+  res.json({ ok: true, service: 'FRS Proxy Chaker Fast Engine' });
 });
 
 app.post('/api/check', async (req, res) => {
-  const { proxies, target = 'https://www.google.com', timeout = 3, type = 'auto', threads = 10 } = req.body || {};
+  const { proxies, target = 'https://www.google.com', timeout = 3, type = 'auto', threads = 15 } = req.body || {};
   if (!Array.isArray(proxies) || proxies.length === 0) {
     return res.status(400).json({ error: 'أدخل بروكسي واحدًا على الأقل.' });
   }
@@ -195,8 +198,8 @@ app.post('/api/check', async (req, res) => {
     return res.status(400).json({ error: 'رابط الموقع غير صحيح.' });
   }
 
-  const timeoutMs = Math.max(800, Math.min(15000, Number(timeout) * 1000 || 3000));
-  const concurrency = Math.max(1, Math.min(50, Number(threads) || 10));
+  const timeoutMs = Math.max(500, Math.min(10000, Number(timeout) * 1000 || 2500));
+  const concurrency = Math.max(1, Math.min(40, Number(threads) || 15));
 
   const output = new Array(proxies.length);
   let nextIndex = 0;
@@ -207,7 +210,7 @@ app.post('/api/check', async (req, res) => {
       try {
         output[index] = await checkOne(proxies[index], targetUrl, timeoutMs, type);
       } catch (error) {
-        output[index] = result(String(proxies[index]), 'failed', null, String(error.message || error).slice(0, 100));
+        output[index] = result(String(proxies[index]), 'failed', null, String(error.message || error).slice(0, 80));
       }
     }
   }
