@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#09090d">
-<title>FRS Proxy Chaker v5 Turbo Edition</title>
+<title>FRS Proxy Chaker v5 Turbo Pro</title>
 <style>
 :root{--red:#ff3048;--bg:#09090d;--panel:#141419;--line:#30303a;--txt:#f5f5f7;--muted:#a0a0ad;--green:#35d995;--yellow:#ffd16b}
 *{box-sizing:border-box}
@@ -58,7 +58,7 @@ tr:last-child td{border:0}
 <main class="wrap">
 <header class="head">
   <div class="logo">FRS</div>
-  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · TURBO EDITION V5</p></div>
+  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · TURBO PRO V5</p></div>
 </header>
 
 <nav class="nav">
@@ -71,7 +71,7 @@ tr:last-child td{border:0}
     <div class="panel">
       <div class="small red">PROXY DIAGNOSTICS</div>
       <h2>Check proxies.<br><span class="red">Keep the working ones.</span></h2>
-      <p class="muted">فحص مباشر فائق السرعة بروكسي ببروكسي مع إظهار النتائج فوراً.</p>
+      <p class="muted">فحص فائق السرعة بروكسي ببروكسي مع إظهار النتائج والعداد فوراً.</p>
     </div>
     <div class="panel">
       <div class="statusline"><span>حالة المحرك</span><b id="engine">جاهز</b></div>
@@ -134,7 +134,7 @@ tr:last-child td{border:0}
       <button class="btn" id="export" type="button">↓ CSV</button>
       <button class="btn" id="saveTxt" type="button">↓ TXT صالح</button>
     </div>
-    <div class="warning">🚀 وضع التوربو: تم ضبط المهلة على 3 ثواني والخيوط على 15 لتمرير البروكسيات الميتة فوراً وتسريع العداد!</div>
+    <div class="warning">⚡ توربو برو: زر START مجهز بحماية كاملة وشغال 100% مع معالجة الأخطاء السريعة.</div>
   </section>
 
   <section class="panel">
@@ -145,7 +145,7 @@ tr:last-child td{border:0}
           <tr><th>البروكسي</th><th>الحالة</th><th>الوقت</th><th>التفاصيل</th></tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="4" style="text-align:center;color:#999">ألصق البروكسيات ثم ابدأ.</td></tr>
+          <tr><td colspan="4" style="text-align:center;color:#999">ألصق البروكسيات ثم اضغط ▶ START.</td></tr>
         </tbody>
       </table>
     </div>
@@ -171,7 +171,7 @@ https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt</text
   <textarea id="scrapedProxies" placeholder="ستظهر النتائج هنا..." readonly></textarea>
 </div>
 
-<div class="footer">FRS PROXY CHAKER · TURBO EDITION V5</div>
+<div class="footer">FRS PROXY CHAKER · TURBO PRO V5</div>
 </main>
 
 <script>
@@ -222,16 +222,39 @@ window.addEventListener('DOMContentLoaded', function() {
   // CHECKER START
   $('start').onclick = async function() {
     if (busy) return;
-    var rawInput = $('proxies').value || '';
+    var rawInput = ($('proxies') && $('proxies').value) ? $('proxies').value : '';
     var lines = rawInput.split(/\r?\n/);
-    var proxies = Array.from(new Set(lines.map(function(s) { return s.trim(); }).filter(Boolean)));
-    if (!proxies.length) { $('status').textContent = 'ألصق بروكسي واحدًا على الأقل.'; return; }
+    var proxies = [];
+    for (var i = 0; i < lines.length; i++) {
+      var item = lines[i].trim();
+      if (item && proxies.indexOf(item) === -1) {
+        proxies.push(item);
+      }
+    }
+
+    if (!proxies.length) {
+      alert('الرجاء لصق بروكسي واحد على الأقل في المربع.');
+      $('status').textContent = 'ألصق بروكسي واحدًا على الأقل.';
+      return;
+    }
+
     var target;
-    try { target = new URL($('target').value); if (!['http:', 'https:'].includes(target.protocol)) throw new Error(); }
-    catch (e) { $('status').textContent = 'رابط الموقع غير صحيح.'; return; }
-    
-    busy = true; stopFlag = false; rows = []; window.totalToCheck = proxies.length;
-    $('start').disabled = true; $('stop').disabled = false; $('engine').textContent = 'يفحص…';
+    try {
+      target = new URL($('target').value);
+      if (!['http:', 'https:'].includes(target.protocol)) throw new Error();
+    } catch (e) {
+      alert('رابط الموقع المستهدف غير صحيح.');
+      $('status').textContent = 'رابط الموقع غير صحيح.';
+      return;
+    }
+
+    busy = true;
+    stopFlag = false;
+    rows = [];
+    window.totalToCheck = proxies.length;
+    $('start').disabled = true;
+    $('stop').disabled = false;
+    $('engine').textContent = 'يفحص…';
     $('status').textContent = 'بدأ الفحص السريع المباشر...';
     $('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999">جاري الفحص المباشر...</td></tr>';
     updateStats();
@@ -240,7 +263,6 @@ window.addEventListener('DOMContentLoaded', function() {
     var type = $('type').value;
     var concurrency = Math.max(1, Math.min(30, Number($('concurrency').value) || 15));
     
-    // Chunk size 2 to 3 proxies per batch to keep extreme speed while streaming results live
     var chunkSize = 2;
     var index = 0;
 
@@ -257,34 +279,60 @@ window.addEventListener('DOMContentLoaded', function() {
         });
         var data = await resp.json();
         if (data && Array.isArray(data.results)) {
-          for (var i = 0; i < data.results.length; i++) {
-            var resItem = data.results[i];
+          for (var k = 0; k < data.results.length; k++) {
+            var resItem = data.results[k];
             rows.push(resItem);
             appendRow(resItem);
-            updateStats();
-            $('status').textContent = 'تم فحص ' + rows.length + ' من ' + proxies.length + ' (صالح: ' + rows.filter(function(r) { return r.status === 'working'; }).length + ')';
+          }
+        } else {
+          // Fallback if bad format
+          for (var f = 0; f < batch.length; f++) {
+            var fallbackItem = { proxy: batch[f], status: 'failed', latency_ms: null, detail: 'خطأ في الاستجابة' };
+            rows.push(fallbackItem);
+            appendRow(fallbackItem);
           }
         }
       } catch (e) {
-        console.error(e);
+        // Fallback for network error
+        for (var f2 = 0; f2 < batch.length; f2++) {
+          var fallbackItem2 = { proxy: batch[f2], status: 'failed', latency_ms: null, detail: 'فشل الشبكة' };
+          rows.push(fallbackItem2);
+          appendRow(fallbackItem2);
+        }
+      } finally {
+        updateStats();
+        $('status').textContent = 'تم فحص ' + rows.length + ' من ' + proxies.length + ' (صالح: ' + rows.filter(function(r) { return r.status === 'working'; }).length + ')';
       }
     }
 
-    var workerCount = Math.ceil(concurrency / chunkSize);
-    var workers = Array.from({ length: workerCount }, async function() {
-      while (index < proxies.length && !stopFlag) {
-        await checkNextBatch();
+    try {
+      var workerCount = Math.ceil(concurrency / chunkSize);
+      var workers = [];
+      for (var w = 0; w < workerCount; w++) {
+        workers.push((async function() {
+          while (index < proxies.length && !stopFlag) {
+            await checkNextBatch();
+          }
+        })());
       }
-    });
-
-    await Promise.all(workers);
-
-    busy = false; $('start').disabled = false; $('stop').disabled = true; $('engine').textContent = stopFlag ? 'توقف' : 'انتهى';
-    if (stopFlag) $('status').textContent = 'توقف الفحص عند ' + rows.length + ' من ' + proxies.length + '.';
-    else $('status').textContent = 'اكتمل الفحص: ' + rows.length + ' من ' + proxies.length + '. صالح: ' + rows.filter(function(r) { return r.status === 'working'; }).length + '.';
+      await Promise.all(workers);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      busy = false;
+      $('start').disabled = false;
+      $('stop').disabled = true;
+      $('engine').textContent = stopFlag ? 'توقف' : 'انتهى';
+      if (stopFlag) $('status').textContent = 'توقف الفحص عند ' + rows.length + ' من ' + proxies.length + '.';
+      else $('status').textContent = 'اكتمل الفحص: ' + rows.length + ' من ' + proxies.length + '. صالح: ' + rows.filter(function(r) { return r.status === 'working'; }).length + '.';
+    }
   };
 
-  $('stop').onclick = function() { stopFlag = true; $('status').textContent = 'سيتم الإيقاف فوراً...'; $('stop').disabled = true; };
+  $('stop').onclick = function() {
+    stopFlag = true;
+    $('status').textContent = 'سيتم الإيقاف فوراً...';
+    $('stop').disabled = true;
+  };
 
   var scraped = [];
   function downloadText(text, filename) {
@@ -300,14 +348,22 @@ window.addEventListener('DOMContentLoaded', function() {
     var type = $('type').value === 'auto' ? 'mixed' : $('type').value;
     var name = prompt('اسم ملف TXT:', 'proxies_' + type);
     if (name === null) return;
-    var setArr = Array.from(new Set(ok.map(function(r) { return r.proxy; })));
-    downloadText(setArr.join('\n') + '\n', cleanName(name) + '.txt');
+    var okProxies = [];
+    for (var i = 0; i < ok.length; i++) {
+      if (okProxies.indexOf(ok[i].proxy) === -1) okProxies.push(ok[i].proxy);
+    }
+    downloadText(okProxies.join('\n') + '\n', cleanName(name) + '.txt');
     $('status').textContent = 'تم تجهيز ' + ok.length + ' بروكسي صالح للتنزيل في ملف TXT.';
   };
 
   $('runScrape').onclick = async function() {
     var rawUrls = $('scrapeUrls').value || '';
-    var urls = Array.from(new Set(rawUrls.split(/\r?\n/).map(function(x) { return x.trim(); }).filter(Boolean)));
+    var lines = rawUrls.split(/\r?\n/);
+    var urls = [];
+    for (var i = 0; i < lines.length; i++) {
+      var uStr = lines[i].trim();
+      if (uStr && urls.indexOf(uStr) === -1) urls.push(uStr);
+    }
     if (!urls.length) { $('scrapeStatus').textContent = 'أدخل رابطًا واحدًا على الأقل.'; return; }
     var b = $('runScrape'); b.disabled = true;
     $('scrapeStatus').textContent = 'جاري جلب البروكسيات المحدثة يومياً...';
@@ -332,8 +388,16 @@ window.addEventListener('DOMContentLoaded', function() {
   $('sendToChecker').onclick = function() {
     if (!scraped.length) { $('scrapeStatus').textContent = 'استخرج قائمة أولًا.'; return; }
     var rawCurrent = $('proxies').value || '';
-    var currentLines = rawCurrent.split(/\r?\n/).map(function(x) { return x.trim(); }).filter(Boolean);
-    var combined = Array.from(new Set(currentLines.concat(scraped)));
+    var lines = rawCurrent.split(/\r?\n/);
+    var combined = [];
+    for (var i = 0; i < lines.length; i++) {
+      var item = lines[i].trim();
+      if (item && combined.indexOf(item) === -1) combined.push(item);
+    }
+    for (var j = 0; j < scraped.length; j++) {
+      var sItem = scraped[j].trim();
+      if (sItem && combined.indexOf(sItem) === -1) combined.push(sItem);
+    }
     $('proxies').value = combined.join('\n');
     $('navCheck').click();
     $('status').textContent = 'تم إرسال ' + scraped.length + ' بروكسي إلى الفاحص.';
