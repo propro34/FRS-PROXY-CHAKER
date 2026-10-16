@@ -14,13 +14,6 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
 
-app.use((req, _res, next) => {
-  if (req.path.startsWith('/api/')) {
-    console.log(`[api] ${req.method} ${req.path}`);
-  }
-  next();
-});
-
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -143,7 +136,7 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
         ok ? 'working' : 'failed',
         latency,
         msg,
-        { http_status: response.status, protocol: proxy.protocol },
+        { http_status: response.status, protocol: proxy.protocol }
       );
     } finally {
       if (agent && typeof agent.destroy === 'function') agent.destroy();
@@ -154,7 +147,7 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
       'failed',
       Date.now() - started,
       String(error.code || error.message || 'Request failed').slice(0, 100),
-      { protocol: proxy.protocol },
+      { protocol: proxy.protocol }
     );
   }
 }
