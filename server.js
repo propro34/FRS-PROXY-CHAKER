@@ -55,7 +55,7 @@ function privateIp(ip) {
   return false;
 }
 
-async function lookupWithTimeout(host, timeoutMs = 3000) {
+async function lookupWithTimeout(host, timeoutMs = 2000) {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(null), timeoutMs);
     dns.lookup(host, { all: true, verbatim: true }).then((addresses) => {
@@ -76,14 +76,14 @@ async function publicHost(host) {
   return Array.isArray(addresses) && addresses.length > 0 && addresses.every((item) => !privateIp(item.address));
 }
 
-function makeAgent(proxyUrl, proxyProtocol, targetProtocol) {
+function makeAgent(proxyUrl, proxyProtocol, targetProtocol, timeoutMs) {
   if (proxyProtocol === 'socks4' || proxyProtocol === 'socks5') {
-    return new SocksProxyAgent(proxyUrl, { timeout: 8000 });
+    return new SocksProxyAgent(proxyUrl, { timeout: timeoutMs });
   }
   if (proxyProtocol === 'https' || targetProtocol === 'https:') {
-    return new HttpsProxyAgent(proxyUrl);
+    return new HttpsProxyAgent(proxyUrl, { timeout: timeoutMs });
   }
-  return new HttpProxyAgent(proxyUrl);
+  return new HttpProxyAgent(proxyUrl, { timeout: timeoutMs });
 }
 
 function result(proxy, status, latency_ms, detail, extra = {}) {
@@ -103,23 +103,18 @@ async function checkOne(input, targetUrl, timeoutMs, type) {
 
     let agent;
     try {
-      agent = makeAgent(proxy.url, proxy.protocol, targetUrl.protocol);
+      agent = makeAgent(proxy.url, proxy.protocol, targetUrl.protocol, timeoutMs);
       
       const response = await axios.get(targetUrl.href, {
         timeout: timeoutMs,
-        maxRedirects: 5,
+        maxRedirects: 3,
         validateStatus: () => true,
         proxy: false,
         responseType: 'stream',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Sec-Ch-Ua': '"Chromium";v="128", "Not=A?Brand";v="24", "Google Chrome";v="128"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0 Safari/537.36',
+          'Accept': '*/*',
+          'Cache-Control': 'no-cache'
         },
         ...(targetUrl.protocol === 'https:' ? { httpsAgent: agent } : { httpAgent: agent }),
       });
@@ -164,7 +159,7 @@ app.post('/api/scrape', async (req, res) => {
     if (!(await publicHost(u.hostname))) { errors.push(`${raw}: المضيف غير عام`); continue; }
     try {
       const response = await axios.get(u.href, {
-        timeout: 10000, maxRedirects: 5, responseType: 'text', maxContentLength: 5 * 1024 * 1024,
+        timeout: 8000, maxRedirects: 3, responseType: 'text', maxContentLength: 5 * 1024 * 1024,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0 Safari/537.36',
           'Accept': 'text/html,text/plain,*/*'
@@ -184,11 +179,11 @@ app.post('/api/scrape', async (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'FRS Proxy Chaker v5 Cyber' });
+  res.json({ ok: true, service: 'FRS Proxy Chaker Turbo' });
 });
 
 app.post('/api/check', async (req, res) => {
-  const { proxies, target = 'https://www.google.com', timeout = 6, type = 'auto', threads = 10 } = req.body || {};
+  const { proxies, target = 'https://www.google.com', timeout = 3, type = 'auto', threads = 10 } = req.body || {};
   if (!Array.isArray(proxies) || proxies.length === 0) {
     return res.status(400).json({ error: 'أدخل بروكسي واحدًا على الأقل.' });
   }
@@ -200,7 +195,7 @@ app.post('/api/check', async (req, res) => {
     return res.status(400).json({ error: 'رابط الموقع غير صحيح.' });
   }
 
-  const timeoutMs = Math.max(1000, Math.min(20000, Number(timeout) * 1000 || 6000));
+  const timeoutMs = Math.max(800, Math.min(15000, Number(timeout) * 1000 || 3000));
   const concurrency = Math.max(1, Math.min(50, Number(threads) || 10));
 
   const output = new Array(proxies.length);

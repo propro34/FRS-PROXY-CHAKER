@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#09090d">
-<title>FRS Proxy Chaker v5 Cyber Edition</title>
+<title>FRS Proxy Chaker v5 Turbo Edition</title>
 <style>
 :root{--red:#ff3048;--bg:#09090d;--panel:#141419;--line:#30303a;--txt:#f5f5f7;--muted:#a0a0ad;--green:#35d995;--yellow:#ffd16b}
 *{box-sizing:border-box}
@@ -58,7 +58,7 @@ tr:last-child td{border:0}
 <main class="wrap">
 <header class="head">
   <div class="logo">FRS</div>
-  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · CYBER EDITION V5</p></div>
+  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · TURBO EDITION V5</p></div>
 </header>
 
 <nav class="nav">
@@ -71,7 +71,7 @@ tr:last-child td{border:0}
     <div class="panel">
       <div class="small red">PROXY DIAGNOSTICS</div>
       <h2>Check proxies.<br><span class="red">Keep the working ones.</span></h2>
-      <p class="muted">فحص مباشر ولحظي بروكسي ببروكسي مع إظهار النتائج فوراً.</p>
+      <p class="muted">فحص مباشر فائق السرعة بروكسي ببروكسي مع إظهار النتائج فوراً.</p>
     </div>
     <div class="panel">
       <div class="statusline"><span>حالة المحرك</span><b id="engine">جاهز</b></div>
@@ -116,12 +116,12 @@ tr:last-child td{border:0}
         </select>
       </div>
       <div>
-        <label for="concurrency">السرعة بالتوازي (Threads: 1 إلى 20)</label>
-        <input id="concurrency" type="number" min="1" max="20" value="5">
+        <label for="concurrency">السرعة بالتوازي (Threads: 5 إلى 30)</label>
+        <input id="concurrency" type="number" min="1" max="30" value="15">
       </div>
       <div>
         <label for="timeout">المهلة (ثواني)</label>
-        <input id="timeout" type="number" min="1" max="15" value="6">
+        <input id="timeout" type="number" min="1" max="15" value="3">
       </div>
     </div>
 
@@ -134,7 +134,7 @@ tr:last-child td{border:0}
       <button class="btn" id="export" type="button">↓ CSV</button>
       <button class="btn" id="saveTxt" type="button">↓ TXT صالح</button>
     </div>
-    <div class="warning">⚡ الفحص مباشر وتدريجي (1.. 2.. 3..) مع تحديث العداد والجدول حبة بحبة!</div>
+    <div class="warning">🚀 وضع التوربو: تم ضبط المهلة على 3 ثواني والخيوط على 15 لتمرير البروكسيات الميتة فوراً وتسريع العداد!</div>
   </section>
 
   <section class="panel">
@@ -171,7 +171,7 @@ https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt</text
   <textarea id="scrapedProxies" placeholder="ستظهر النتائج هنا..." readonly></textarea>
 </div>
 
-<div class="footer">FRS PROXY CHAKER · CYBER EDITION V5</div>
+<div class="footer">FRS PROXY CHAKER · TURBO EDITION V5</div>
 </main>
 
 <script>
@@ -232,25 +232,28 @@ window.addEventListener('DOMContentLoaded', function() {
     
     busy = true; stopFlag = false; rows = []; window.totalToCheck = proxies.length;
     $('start').disabled = true; $('stop').disabled = false; $('engine').textContent = 'يفحص…';
-    $('status').textContent = 'بدأ الفحص اللحظي المباشر...';
+    $('status').textContent = 'بدأ الفحص السريع المباشر...';
     $('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999">جاري الفحص المباشر...</td></tr>';
     updateStats();
 
-    var timeout = Math.max(1, Math.min(15, Number($('timeout').value) || 6));
+    var timeout = Math.max(1, Math.min(15, Number($('timeout').value) || 3));
     var type = $('type').value;
-    var concurrency = Math.max(1, Math.min(20, Number($('concurrency').value) || 5));
+    var concurrency = Math.max(1, Math.min(30, Number($('concurrency').value) || 15));
     
+    // Chunk size 2 to 3 proxies per batch to keep extreme speed while streaming results live
+    var chunkSize = 2;
     var index = 0;
 
-    async function checkNext() {
+    async function checkNextBatch() {
       if (index >= proxies.length || stopFlag) return;
-      var proxyCandidate = proxies[index++];
+      var batch = proxies.slice(index, index + chunkSize);
+      index += batch.length;
       
       try {
         var resp = await fetch('/api/check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ proxies: [proxyCandidate], target: target.href, timeout: timeout, type: type, threads: 1 })
+          body: JSON.stringify({ proxies: batch, target: target.href, timeout: timeout, type: type, threads: batch.length })
         });
         var data = await resp.json();
         if (data && Array.isArray(data.results)) {
@@ -267,9 +270,10 @@ window.addEventListener('DOMContentLoaded', function() {
       }
     }
 
-    var workers = Array.from({ length: concurrency }, async function() {
+    var workerCount = Math.ceil(concurrency / chunkSize);
+    var workers = Array.from({ length: workerCount }, async function() {
       while (index < proxies.length && !stopFlag) {
-        await checkNext();
+        await checkNextBatch();
       }
     });
 
