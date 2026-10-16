@@ -179,7 +179,7 @@ app.post('/api/scrape', async (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'FRS Proxy Chaker Turbo' });
+  res.json({ ok: true, service: 'FRS Proxy Chaker Smooth' });
 });
 
 app.post('/api/check', async (req, res) => {

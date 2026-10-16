@@ -2,7 +2,7 @@
   "name": "frs-proxy-chaker",
   "version": "5.0.0",
   "private": true,
-  "description": "FRS Proxy Chaker Turbo Edition v5",
+  "description": "FRS Proxy Chaker Turbo Smooth v5",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

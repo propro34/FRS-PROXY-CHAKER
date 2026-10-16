@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#09090d">
-<title>FRS Proxy Chaker v5 Turbo Pro</title>
+<title>FRS Proxy Chaker Ultra Smooth</title>
 <style>
 :root{--red:#ff3048;--bg:#09090d;--panel:#141419;--line:#30303a;--txt:#f5f5f7;--muted:#a0a0ad;--green:#35d995;--yellow:#ffd16b}
 *{box-sizing:border-box}
@@ -58,7 +58,7 @@ tr:last-child td{border:0}
 <main class="wrap">
 <header class="head">
   <div class="logo">FRS</div>
-  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · TURBO PRO V5</p></div>
+  <div><h1>FRS PROXY CHAKER</h1><p>PRIVATE WEB CHECKER · ULTRA SMOOTH V5</p></div>
 </header>
 
 <nav class="nav">
@@ -71,7 +71,7 @@ tr:last-child td{border:0}
     <div class="panel">
       <div class="small red">PROXY DIAGNOSTICS</div>
       <h2>Check proxies.<br><span class="red">Keep the working ones.</span></h2>
-      <p class="muted">فحص فائق السرعة بروكسي ببروكسي مع إظهار النتائج والعداد فوراً.</p>
+      <p class="muted">فحص خفيف بدون أي ثقل أو تجمد للمتصفح.</p>
     </div>
     <div class="panel">
       <div class="statusline"><span>حالة المحرك</span><b id="engine">جاهز</b></div>
@@ -116,8 +116,8 @@ tr:last-child td{border:0}
         </select>
       </div>
       <div>
-        <label for="concurrency">السرعة بالتوازي (Threads: 5 إلى 30)</label>
-        <input id="concurrency" type="number" min="1" max="30" value="15">
+        <label for="concurrency">السرعة بالتوازي (Threads)</label>
+        <input id="concurrency" type="number" min="1" max="50" value="10">
       </div>
       <div>
         <label for="timeout">المهلة (ثواني)</label>
@@ -134,7 +134,7 @@ tr:last-child td{border:0}
       <button class="btn" id="export" type="button">↓ CSV</button>
       <button class="btn" id="saveTxt" type="button">↓ TXT صالح</button>
     </div>
-    <div class="warning">⚡ توربو برو: زر START مجهز بحماية كاملة وشغال 100% مع معالجة الأخطاء السريعة.</div>
+    <div class="warning">⚡ وضع السلاسة الفائقة (Ultra-Smooth): تم إلغاء ثقل الصفحة بالكامل عبر معالجة الدفعات وخفّة الـ DOM!</div>
   </section>
 
   <section class="panel">
@@ -171,13 +171,16 @@ https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt</text
   <textarea id="scrapedProxies" placeholder="ستظهر النتائج هنا..." readonly></textarea>
 </div>
 
-<div class="footer">FRS PROXY CHAKER · TURBO PRO V5</div>
+<div class="footer">FRS PROXY CHAKER · ULTRA SMOOTH V5</div>
 </main>
 
 <script>
 window.addEventListener('DOMContentLoaded', function() {
   function $(id) { return document.getElementById(id); }
-  var busy = false, stopFlag = false, rows = [];
+  var busy = false, stopFlag = false;
+  var rows = [];
+  var totalCount = 0, checkedCount = 0, workingCount = 0, failedCount = 0;
+  var MAX_VISIBLE_ROWS = 150; // Keep table lightweight to avoid browser DOM lag!
 
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function(c) {
@@ -185,23 +188,43 @@ window.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function updateStats() {
-    var done = rows.length;
-    var ok = rows.filter(function(r) { return r.status === 'working'; }).length;
-    var bad = rows.filter(function(r) { return r.status !== 'working'; }).length;
-    $('total').textContent = window.totalToCheck || 0;
-    $('checked').textContent = done;
-    $('working').textContent = ok;
-    $('failed').textContent = bad;
-    $('progressText').textContent = done + ' / ' + (window.totalToCheck || 0);
-    $('bar').style.width = (window.totalToCheck ? Math.min(100, done / window.totalToCheck * 100) : 0) + '%';
+  function updateStatsUI() {
+    $('total').textContent = totalCount;
+    $('checked').textContent = checkedCount;
+    $('working').textContent = workingCount;
+    $('failed').textContent = failedCount;
+    $('progressText').textContent = checkedCount + ' / ' + totalCount;
+    $('bar').style.width = (totalCount ? Math.min(100, (checkedCount / totalCount) * 100) : 0) + '%';
   }
 
-  function appendRow(r) {
-    if (rows.length === 1) $('tbody').innerHTML = '';
-    var tr = document.createElement('tr');
-    tr.innerHTML = '<td dir="ltr">' + esc(r.proxy) + '</td><td><span class="tag ' + (r.status === 'working' ? 'good' : r.status === 'invalid' ? 'bad' : 'warn') + '">' + (r.status === 'working' ? 'WORKING' : r.status === 'invalid' ? 'INVALID' : r.status === 'blocked' ? 'BLOCKED' : 'FAILED') + '</span></td><td>' + (r.latency_ms == null ? '—' : r.latency_ms + ' ms') + '</td><td>' + esc(r.detail) + '</td>';
-    $('tbody').insertBefore(tr, $('tbody').firstChild);
+  function renderBatch(items) {
+    if (!items || !items.length) return;
+    var tbody = $('tbody');
+    if (checkedCount <= items.length) {
+      tbody.innerHTML = '';
+    }
+    
+    var fragment = document.createDocumentFragment();
+    for (var i = 0; i < items.length; i++) {
+      var r = items[i];
+      rows.push(r);
+      checkedCount++;
+      if (r.status === 'working') workingCount++;
+      else failedCount++;
+
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td dir="ltr">' + esc(r.proxy) + '</td><td><span class="tag ' + (r.status === 'working' ? 'good' : r.status === 'invalid' ? 'bad' : 'warn') + '">' + (r.status === 'working' ? 'WORKING' : r.status === 'invalid' ? 'INVALID' : r.status === 'blocked' ? 'BLOCKED' : 'FAILED') + '</span></td><td>' + (r.latency_ms == null ? '—' : r.latency_ms + ' ms') + '</td><td>' + esc(r.detail) + '</td>';
+      fragment.insertBefore(tr, fragment.firstChild);
+    }
+    
+    tbody.insertBefore(fragment, tbody.firstChild);
+
+    // Trim excessive DOM rows to keep table super lightweight
+    while (tbody.children.length > MAX_VISIBLE_ROWS) {
+      tbody.removeChild(tbody.lastChild);
+    }
+
+    updateStatsUI();
   }
 
   // TAB SWITCHING
@@ -251,71 +274,63 @@ window.addEventListener('DOMContentLoaded', function() {
     busy = true;
     stopFlag = false;
     rows = [];
-    window.totalToCheck = proxies.length;
+    totalCount = proxies.length;
+    checkedCount = 0;
+    workingCount = 0;
+    failedCount = 0;
+
     $('start').disabled = true;
     $('stop').disabled = false;
     $('engine').textContent = 'يفحص…';
-    $('status').textContent = 'بدأ الفحص السريع المباشر...';
+    $('status').textContent = 'بدأ الفحص السلس المباشر...';
     $('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999">جاري الفحص المباشر...</td></tr>';
-    updateStats();
+    updateStatsUI();
 
     var timeout = Math.max(1, Math.min(15, Number($('timeout').value) || 3));
     var type = $('type').value;
-    var concurrency = Math.max(1, Math.min(30, Number($('concurrency').value) || 15));
+    var concurrency = Math.max(1, Math.min(50, Number($('concurrency').value) || 10));
     
-    var chunkSize = 2;
+    // Batch size sent to backend per HTTP request (e.g. 10 proxies per chunk)
+    var chunkSize = 10;
     var index = 0;
 
-    async function checkNextBatch() {
+    async function processChunk() {
       if (index >= proxies.length || stopFlag) return;
       var batch = proxies.slice(index, index + chunkSize);
       index += batch.length;
-      
+
       try {
         var resp = await fetch('/api/check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ proxies: batch, target: target.href, timeout: timeout, type: type, threads: batch.length })
+          body: JSON.stringify({ proxies: batch, target: target.href, timeout: timeout, type: type, threads: concurrency })
         });
         var data = await resp.json();
         if (data && Array.isArray(data.results)) {
-          for (var k = 0; k < data.results.length; k++) {
-            var resItem = data.results[k];
-            rows.push(resItem);
-            appendRow(resItem);
-          }
+          renderBatch(data.results);
         } else {
-          // Fallback if bad format
+          var fb = [];
           for (var f = 0; f < batch.length; f++) {
-            var fallbackItem = { proxy: batch[f], status: 'failed', latency_ms: null, detail: 'خطأ في الاستجابة' };
-            rows.push(fallbackItem);
-            appendRow(fallbackItem);
+            fb.push({ proxy: batch[f], status: 'failed', latency_ms: null, detail: 'استجابة غير صالحة' });
           }
+          renderBatch(fb);
         }
       } catch (e) {
-        // Fallback for network error
+        var fb2 = [];
         for (var f2 = 0; f2 < batch.length; f2++) {
-          var fallbackItem2 = { proxy: batch[f2], status: 'failed', latency_ms: null, detail: 'فشل الشبكة' };
-          rows.push(fallbackItem2);
-          appendRow(fallbackItem2);
+          fb2.push({ proxy: batch[f2], status: 'failed', latency_ms: null, detail: 'خطأ شبكة' });
         }
-      } finally {
-        updateStats();
-        $('status').textContent = 'تم فحص ' + rows.length + ' من ' + proxies.length + ' (صالح: ' + rows.filter(function(r) { return r.status === 'working'; }).length + ')';
+        renderBatch(fb2);
       }
+
+      // Yield event loop to prevent UI freezing!
+      await new Promise(function(resolve) { setTimeout(resolve, 10); });
     }
 
     try {
-      var workerCount = Math.ceil(concurrency / chunkSize);
-      var workers = [];
-      for (var w = 0; w < workerCount; w++) {
-        workers.push((async function() {
-          while (index < proxies.length && !stopFlag) {
-            await checkNextBatch();
-          }
-        })());
+      while (index < proxies.length && !stopFlag) {
+        await processChunk();
       }
-      await Promise.all(workers);
     } catch (err) {
       console.error(err);
     } finally {
@@ -323,8 +338,8 @@ window.addEventListener('DOMContentLoaded', function() {
       $('start').disabled = false;
       $('stop').disabled = true;
       $('engine').textContent = stopFlag ? 'توقف' : 'انتهى';
-      if (stopFlag) $('status').textContent = 'توقف الفحص عند ' + rows.length + ' من ' + proxies.length + '.';
-      else $('status').textContent = 'اكتمل الفحص: ' + rows.length + ' من ' + proxies.length + '. صالح: ' + rows.filter(function(r) { return r.status === 'working'; }).length + '.';
+      if (stopFlag) $('status').textContent = 'توقف الفحص عند ' + checkedCount + ' من ' + totalCount + '.';
+      else $('status').textContent = 'اكتمل الفحص: ' + checkedCount + ' من ' + totalCount + '. صالح: ' + workingCount + '.';
     }
   };
 
